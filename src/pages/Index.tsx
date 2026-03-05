@@ -1,13 +1,64 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { HeroBanner } from "@/components/HeroBanner";
+import { TopicSection } from "@/components/TopicSection";
+import { ArticleCard } from "@/components/ArticleCard";
+import { useLatestIssue, useIssueArticles } from "@/hooks/useArticles";
+import { ALL_TOPICS } from "@/lib/topics";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Zap } from "lucide-react";
 
 const Index = () => {
+  const { data: issue, isLoading: issueLoading } = useLatestIssue();
+  const { data: articles, isLoading: articlesLoading } = useIssueArticles(issue?.id);
+
+  const isLoading = issueLoading || articlesLoading;
+  const featured = articles?.find((a) => a.is_featured);
+  const byTopic = (topic: string) =>
+    articles?.filter((a) => a.topic === topic && a.id !== featured?.id) ?? [];
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <>
+      <HeroBanner issue={issue ?? null} />
+
+      <main className="container mx-auto px-4 py-10">
+        {isLoading ? (
+          <div className="space-y-6">
+            <Skeleton className="h-64 w-full rounded-lg" />
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-48 rounded-lg" />
+              ))}
+            </div>
+          </div>
+        ) : !articles || articles.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-32 text-center">
+            <Zap className="mb-4 h-12 w-12 text-primary" />
+            <h2 className="mb-2 font-display text-2xl font-bold">
+              No Articles Yet
+            </h2>
+            <p className="max-w-md text-muted-foreground">
+              The first weekly issue is being curated. Check back soon for the
+              latest energy &amp; sustainability news.
+            </p>
+          </div>
+        ) : (
+          <>
+            {featured && (
+              <div className="mb-12">
+                <ArticleCard article={featured} featured />
+              </div>
+            )}
+
+            {ALL_TOPICS.map((topic) => (
+              <TopicSection
+                key={topic}
+                topic={topic}
+                articles={byTopic(topic)}
+              />
+            ))}
+          </>
+        )}
+      </main>
+    </>
   );
 };
 
