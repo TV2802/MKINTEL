@@ -1,0 +1,4 @@
+project_id = "awgseqiufhqwxmihfcnd"
+
+[functions.fetch-articles]
+verify_jwt = false
