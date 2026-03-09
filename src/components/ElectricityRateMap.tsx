@@ -115,7 +115,13 @@ interface SolarData {
   capacity_factor: number | null;
 }
 
-type MapMode = "rates" | "solar" | "index";
+type LayerKey = "rates" | "solar" | "index";
+
+interface Layers {
+  rates: boolean;
+  solar: boolean;
+  index: boolean;
+}
 
 interface TooltipData {
   x: number;
@@ -142,13 +148,13 @@ function TrendArrow({ trend }: { trend: string }) {
   return <span className="text-zinc-500">—</span>;
 }
 
-const MODE_PILLS: { mode: MapMode; label: string }[] = [
-  { mode: "rates", label: "⚡ Electricity Rates" },
-  { mode: "solar", label: "☀️ Solar Production" },
-  { mode: "index", label: "📊 Rate × Solar Index" },
+const LAYER_PILLS: { key: LayerKey; label: string }[] = [
+  { key: "rates", label: "⚡ Electricity Rates" },
+  { key: "solar", label: "☀️ Solar Production" },
+  { key: "index", label: "📊 Rate × Solar Index" },
 ];
 
-const SUBTITLES: Record<MapMode, string> = {
+const SUBTITLES: Record<LayerKey, string> = {
   rates: "Brightness = rate intensity · Click any state to track/untrack",
   solar: "Brightness = annual solar production (kWh) · Click any state to track/untrack",
   index: "Green = highest opportunity (high rate × high solar) · Click any state to track/untrack",
@@ -156,14 +162,21 @@ const SUBTITLES: Record<MapMode, string> = {
 
 export default function ElectricityRateMap({ rates, loading, tracked, onToggleTracked }: Props) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
-  const [mode, setMode] = useState<MapMode>("rates");
+  const [layers, setLayers] = useState<Layers>({ rates: true, solar: false, index: false });
   const [solarData, setSolarData] = useState<SolarData[]>([]);
   const [solarLoading, setSolarLoading] = useState(false);
   const [solarFetched, setSolarFetched] = useState(false);
 
-  // Fetch solar data when switching to solar or index mode
+  const toggleLayer = useCallback((key: LayerKey) => {
+    setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  // Determine active coloring mode by priority: index > solar > rates
+  const activeColorMode: LayerKey = layers.index ? "index" : layers.solar ? "solar" : "rates";
+
+  // Fetch solar data when solar or index layer is toggled on
   useEffect(() => {
-    if ((mode === "solar" || mode === "index") && !solarFetched) {
+    if ((layers.solar || layers.index) && !solarFetched) {
       setSolarLoading(true);
       supabase.functions.invoke("pvwatts-states").then(({ data, error }) => {
         if (!error && data?.data) {
@@ -173,7 +186,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
         setSolarLoading(false);
       });
     }
-  }, [mode, solarFetched]);
+  }, [layers.solar, layers.index, solarFetched]);
 
   const rateMap = useMemo(() => {
     const m: Record<string, StateRate> = {};
@@ -216,7 +229,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
     return m;
   }, [rateMap, solarMap, minPrice, maxPrice, minSolar, maxSolar]);
 
-  // Coloring function based on mode
+  // Coloring function based on active color mode priority
   const getColor = useCallback(
     (abbr: string, isTracked: boolean): string => {
       if (isTracked) return STATE_TRACKED_OVERRIDE[abbr] || STATE_TO_ISO[abbr]?.tracked || "#f59e0b";
@@ -225,15 +238,13 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
       if (!region) return "#18181b";
       const baseColor = STATE_BASE_OVERRIDE[abbr] || region.base;
 
-      if (mode === "rates") {
-        const price = rateMap[abbr]?.price;
-        if (price == null) return adjustBrightness(baseColor, 0.85);
-        const range = maxPrice - minPrice || 1;
-        const t = (price - minPrice) / range;
-        return adjustBrightness(baseColor, 0.85 + t * 0.30);
+      if (activeColorMode === "index") {
+        const score = opportunityMap[abbr];
+        if (score == null) return "#1a1a1a";
+        return lerpColor("#7a6c00", "#16a34a", score);
       }
 
-      if (mode === "solar") {
+      if (activeColorMode === "solar") {
         const ac = solarMap[abbr]?.ac_annual;
         if (ac == null) return adjustBrightness(baseColor, 0.6);
         const range = maxSolar - minSolar || 1;
@@ -241,12 +252,14 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
         return adjustBrightness(baseColor, 0.7 + t * 0.6);
       }
 
-      // index mode: gold (#b8860b) → green (#22c55e)
-      const score = opportunityMap[abbr];
-      if (score == null) return "#1a1a1a";
-      return lerpColor("#7a6c00", "#16a34a", score);
+      // rates (default)
+      const price = rateMap[abbr]?.price;
+      if (price == null) return adjustBrightness(baseColor, 0.85);
+      const range = maxPrice - minPrice || 1;
+      const t = (price - minPrice) / range;
+      return adjustBrightness(baseColor, 0.85 + t * 0.30);
     },
-    [mode, rateMap, solarMap, opportunityMap, minPrice, maxPrice, minSolar, maxSolar]
+    [activeColorMode, rateMap, solarMap, opportunityMap, minPrice, maxPrice, minSolar, maxSolar]
   );
 
   const { isoLabelsToShow } = useMemo(() => {
@@ -263,7 +276,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
     return { isoLabelsToShow: isoLabels };
   }, [tracked]);
 
-  const isLoading = loading || ((mode === "solar" || mode === "index") && solarLoading);
+  const isLoading = loading || ((layers.solar || layers.index) && solarLoading);
 
   if (isLoading) {
     return (
@@ -275,14 +288,14 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
 
   return (
     <div className="relative">
-      {/* Mode pills */}
+      {/* Layer toggle pills */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        {MODE_PILLS.map((pill) => (
+        {LAYER_PILLS.map((pill) => (
           <button
-            key={pill.mode}
-            onClick={() => setMode(pill.mode)}
+            key={pill.key}
+            onClick={() => toggleLayer(pill.key)}
             className={`rounded-full border px-3 py-1.5 font-mono text-xs font-semibold transition-all ${
-              mode === pill.mode
+              layers[pill.key]
                 ? "border-amber-500 bg-amber-500/20 text-amber-300"
                 : "border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
             }`}
@@ -434,7 +447,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
         </ComposableMap>
       </div>
 
-      {/* Tooltip — all modes show all data */}
+      {/* Tooltip — only show data for active layers */}
       {tooltip && (
         <div
           className="pointer-events-none fixed z-50 rounded-lg border border-zinc-700 bg-zinc-900/95 px-3 py-2 shadow-xl backdrop-blur-sm"
@@ -447,36 +460,42 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
             </span>
           </div>
           <div className="mt-1 space-y-0.5">
-            <p className="font-mono text-xs text-zinc-300">
-              ⚡ Rate:{" "}
-              <span className="font-bold text-amber-400">
-                {tooltip.price != null ? `${tooltip.price.toFixed(2)} ¢/kWh` : "N/A"}
-              </span>
-              {tooltip.price != null && (
-                <span className="ml-1.5">
-                  <TrendArrow trend={tooltip.trend} />
+            {layers.rates && (
+              <p className="font-mono text-xs text-zinc-300">
+                ⚡ Rate:{" "}
+                <span className="font-bold text-amber-400">
+                  {tooltip.price != null ? `${tooltip.price.toFixed(2)} ¢/kWh` : "N/A"}
                 </span>
-              )}
-            </p>
-            <p className="font-mono text-xs text-zinc-300">
-              ☀️ Solar:{" "}
-              <span className="font-bold text-yellow-300">
-                {tooltip.acAnnual != null ? `${Math.round(tooltip.acAnnual).toLocaleString()} kWh/yr` : "N/A"}
-              </span>
-            </p>
-            <p className="font-mono text-xs text-zinc-300">
-              📊 Index:{" "}
-              <span className="font-bold text-green-400">
-                {tooltip.opportunityIndex != null ? tooltip.opportunityIndex.toFixed(3) : "N/A"}
-              </span>
-            </p>
+                {tooltip.price != null && (
+                  <span className="ml-1.5">
+                    <TrendArrow trend={tooltip.trend} />
+                  </span>
+                )}
+              </p>
+            )}
+            {layers.solar && (
+              <p className="font-mono text-xs text-zinc-300">
+                ☀️ Solar:{" "}
+                <span className="font-bold text-yellow-300">
+                  {tooltip.acAnnual != null ? `${Math.round(tooltip.acAnnual).toLocaleString()} kWh/yr` : "N/A"}
+                </span>
+              </p>
+            )}
+            {layers.index && (
+              <p className="font-mono text-xs text-zinc-300">
+                📊 Index:{" "}
+                <span className="font-bold text-green-400">
+                  {tooltip.opportunityIndex != null ? tooltip.opportunityIndex.toFixed(3) : "N/A"}
+                </span>
+              </p>
+            )}
           </div>
-          <p className="mt-1 font-mono text-[10px] text-zinc-600">{tooltip.period}</p>
+          {layers.rates && <p className="mt-1 font-mono text-[10px] text-zinc-600">{tooltip.period}</p>}
         </div>
       )}
 
-      {/* Legend */}
-      {mode === "rates" && (
+      {/* Legend — matches active color mode */}
+      {activeColorMode === "rates" && (
         <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           {ISO_REGIONS.filter((r) => r.name !== "Other").map((region) => (
             <span key={region.name} className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-400">
@@ -491,7 +510,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
         </div>
       )}
 
-      {mode === "solar" && (
+      {activeColorMode === "solar" && (
         <div className="mt-5 flex items-center justify-center gap-3">
           <span className="font-mono text-[10px] text-zinc-500">{Math.round(minSolar).toLocaleString()} kWh</span>
           <div className="flex h-3 w-40 overflow-hidden rounded-full">
@@ -512,7 +531,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
         </div>
       )}
 
-      {mode === "index" && (
+      {activeColorMode === "index" && (
         <div className="mt-5 flex items-center justify-center gap-3">
           <span className="font-mono text-[10px] text-zinc-500">Low opportunity</span>
           <div className="flex h-3 w-40 overflow-hidden rounded-full">
@@ -529,7 +548,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
       )}
 
       <p className="mt-1 text-center font-mono text-[9px] text-zinc-600">
-        {SUBTITLES[mode]}
+        {SUBTITLES[activeColorMode]}
       </p>
     </div>
   );
