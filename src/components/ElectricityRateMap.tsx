@@ -447,7 +447,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
         </ComposableMap>
       </div>
 
-      {/* Tooltip — all modes show all data */}
+      {/* Tooltip — only show data for active layers */}
       {tooltip && (
         <div
           className="pointer-events-none fixed z-50 rounded-lg border border-zinc-700 bg-zinc-900/95 px-3 py-2 shadow-xl backdrop-blur-sm"
@@ -460,36 +460,42 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
             </span>
           </div>
           <div className="mt-1 space-y-0.5">
-            <p className="font-mono text-xs text-zinc-300">
-              ⚡ Rate:{" "}
-              <span className="font-bold text-amber-400">
-                {tooltip.price != null ? `${tooltip.price.toFixed(2)} ¢/kWh` : "N/A"}
-              </span>
-              {tooltip.price != null && (
-                <span className="ml-1.5">
-                  <TrendArrow trend={tooltip.trend} />
+            {layers.rates && (
+              <p className="font-mono text-xs text-zinc-300">
+                ⚡ Rate:{" "}
+                <span className="font-bold text-amber-400">
+                  {tooltip.price != null ? `${tooltip.price.toFixed(2)} ¢/kWh` : "N/A"}
                 </span>
-              )}
-            </p>
-            <p className="font-mono text-xs text-zinc-300">
-              ☀️ Solar:{" "}
-              <span className="font-bold text-yellow-300">
-                {tooltip.acAnnual != null ? `${Math.round(tooltip.acAnnual).toLocaleString()} kWh/yr` : "N/A"}
-              </span>
-            </p>
-            <p className="font-mono text-xs text-zinc-300">
-              📊 Index:{" "}
-              <span className="font-bold text-green-400">
-                {tooltip.opportunityIndex != null ? tooltip.opportunityIndex.toFixed(3) : "N/A"}
-              </span>
-            </p>
+                {tooltip.price != null && (
+                  <span className="ml-1.5">
+                    <TrendArrow trend={tooltip.trend} />
+                  </span>
+                )}
+              </p>
+            )}
+            {layers.solar && (
+              <p className="font-mono text-xs text-zinc-300">
+                ☀️ Solar:{" "}
+                <span className="font-bold text-yellow-300">
+                  {tooltip.acAnnual != null ? `${Math.round(tooltip.acAnnual).toLocaleString()} kWh/yr` : "N/A"}
+                </span>
+              </p>
+            )}
+            {layers.index && (
+              <p className="font-mono text-xs text-zinc-300">
+                📊 Index:{" "}
+                <span className="font-bold text-green-400">
+                  {tooltip.opportunityIndex != null ? tooltip.opportunityIndex.toFixed(3) : "N/A"}
+                </span>
+              </p>
+            )}
           </div>
-          <p className="mt-1 font-mono text-[10px] text-zinc-600">{tooltip.period}</p>
+          {layers.rates && <p className="mt-1 font-mono text-[10px] text-zinc-600">{tooltip.period}</p>}
         </div>
       )}
 
-      {/* Legend */}
-      {mode === "rates" && (
+      {/* Legend — matches active color mode */}
+      {activeColorMode === "rates" && (
         <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           {ISO_REGIONS.filter((r) => r.name !== "Other").map((region) => (
             <span key={region.name} className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-400">
@@ -504,7 +510,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
         </div>
       )}
 
-      {mode === "solar" && (
+      {activeColorMode === "solar" && (
         <div className="mt-5 flex items-center justify-center gap-3">
           <span className="font-mono text-[10px] text-zinc-500">{Math.round(minSolar).toLocaleString()} kWh</span>
           <div className="flex h-3 w-40 overflow-hidden rounded-full">
@@ -525,7 +531,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
         </div>
       )}
 
-      {mode === "index" && (
+      {activeColorMode === "index" && (
         <div className="mt-5 flex items-center justify-center gap-3">
           <span className="font-mono text-[10px] text-zinc-500">Low opportunity</span>
           <div className="flex h-3 w-40 overflow-hidden rounded-full">
@@ -542,7 +548,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
       )}
 
       <p className="mt-1 text-center font-mono text-[9px] text-zinc-600">
-        {SUBTITLES[mode]}
+        {SUBTITLES[activeColorMode]}
       </p>
     </div>
   );
