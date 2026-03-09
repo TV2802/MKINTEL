@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { TrendingUp, TrendingDown, Minus, Activity, DollarSign, Zap, Clock } from "lucide-react";
 import { format } from "date-fns";
+import ElectricityRateMap from "@/components/ElectricityRateMap";
 
 interface StateRate {
   stateId: string;
@@ -73,15 +74,7 @@ export default function MarketIntelligence() {
         setRatesFetched(data.fetched_at);
       } catch (err: any) {
         console.error("Rates fetch error:", err);
-        const fallbackRates: StateRate[] = [
-          { stateId: 'CA', stateName: 'California', price: null, period: 'Data unavailable', trend: 'neutral' },
-          { stateId: 'CO', stateName: 'Colorado', price: null, period: 'Data unavailable', trend: 'neutral' },
-          { stateId: 'MA', stateName: 'Massachusetts', price: null, period: 'Data unavailable', trend: 'neutral' },
-          { stateId: 'NJ', stateName: 'New Jersey', price: null, period: 'Data unavailable', trend: 'neutral' },
-          { stateId: 'NY', stateName: 'New York', price: null, period: 'Data unavailable', trend: 'neutral' },
-          { stateId: 'TX', stateName: 'Texas', price: null, period: 'Data unavailable', trend: 'neutral' },
-        ];
-        setStateRates(fallbackRates);
+        setStateRates([]);
         setRatesError(err.message || "Failed to fetch rates");
       } finally {
         setRatesLoading(false);
@@ -134,48 +127,20 @@ export default function MarketIntelligence() {
       </header>
 
       <main className="container mx-auto space-y-12 px-4 py-10">
-        {/* Section 1: State Electricity Rates */}
+        {/* Section 1: US Electricity Rate Map */}
         <section>
           <div className="mb-6 flex items-center gap-2">
             <Zap className="h-5 w-5 text-amber-400" />
-            <h2 className="font-display text-xl font-bold text-zinc-50">State Electricity Rates</h2>
+            <h2 className="font-display text-xl font-bold text-zinc-50">US Residential Electricity Rates</h2>
             <span className="ml-2 rounded bg-amber-500/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber-400">
               Live EIA Data
             </span>
           </div>
-
-          {ratesLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-28 animate-pulse rounded-lg bg-zinc-800/50" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {stateRates.map((rate) => (
-                <div
-                  key={rate.stateId}
-                  className={`rounded-lg border bg-zinc-900/80 p-4 transition-colors ${
-                    rate.price === null ? "border-red-500/30" : "border-zinc-800 hover:border-amber-500/30"
-                  }`}
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="font-mono text-xs uppercase tracking-wider text-zinc-400">
-                      {rate.stateId}
-                    </span>
-                    <TrendIcon trend={rate.trend} className="h-4 w-4" />
-                  </div>
-                  <p className="mb-1 font-display text-sm font-semibold text-zinc-200">{rate.stateName}</p>
-                  <p className={`font-mono text-2xl font-bold tabular-nums ${rate.price !== null ? 'text-amber-400' : 'text-zinc-500'}`}>
-                    {rate.price !== null ? parseFloat(String(rate.price)).toFixed(2) : '--.--'}
-                    <span className="ml-1 text-sm font-normal text-zinc-500">¢/kWh</span>
-                  </p>
-                  <p className={`mt-1 font-mono text-[10px] ${rate.period === 'Data unavailable' ? 'text-red-400' : 'text-zinc-600'}`}>
-                    {rate.period}
-                  </p>
-                </div>
-              ))}
-            </div>
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-4">
+            <ElectricityRateMap rates={stateRates} loading={ratesLoading} />
+          </div>
+          {ratesError && (
+            <p className="mt-2 font-mono text-xs text-red-400">Note: {ratesError}</p>
           )}
         </section>
 
