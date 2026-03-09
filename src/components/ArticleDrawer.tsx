@@ -49,7 +49,7 @@ export function ArticleDrawer({ article, open, onClose }: ArticleDrawerProps) {
   const dateStr = article.published_at
     ? format(new Date(article.published_at), "MMMM d, yyyy")
     : "";
-  const readTime = estimateReadTime(article.summary);
+  const readTime = estimateReadTime(stripHtml(article.summary));
 
   return (
     <>
