@@ -53,7 +53,7 @@ export function DigestCard({ issueId, digestText }: DigestCardProps) {
         </Button>
       </div>
       {digestText ? (
-        <p className="text-base leading-[1.8] text-card-foreground/80 italic">
+        <p className="font-body text-base leading-[1.8] text-card-foreground/80">
           {digestText}
         </p>
       ) : (

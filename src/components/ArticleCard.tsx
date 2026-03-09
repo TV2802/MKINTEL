@@ -111,7 +111,7 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
           {config.label}
         </span>
 
-        <h3 className="mb-2 font-display text-lg font-bold italic leading-snug text-card-foreground md:text-xl">
+        <h3 className="mb-2 font-display text-lg font-bold leading-snug text-card-foreground md:text-xl">
           {article.title}
         </h3>
 
