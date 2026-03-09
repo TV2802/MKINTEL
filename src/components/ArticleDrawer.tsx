@@ -5,6 +5,7 @@ import { X, ExternalLink, Clock } from "lucide-react";
 import { format } from "date-fns";
 import type { Article } from "@/hooks/useArticles";
 import { TOPIC_CONFIG } from "@/lib/topics";
+import { stripHtml } from "@/lib/utils";
 
 interface ArticleDrawerProps {
   article: Article | null;
@@ -48,7 +49,7 @@ export function ArticleDrawer({ article, open, onClose }: ArticleDrawerProps) {
   const dateStr = article.published_at
     ? format(new Date(article.published_at), "MMMM d, yyyy")
     : "";
-  const readTime = estimateReadTime(article.summary);
+  const readTime = estimateReadTime(stripHtml(article.summary));
 
   return (
     <>
@@ -114,7 +115,7 @@ export function ArticleDrawer({ article, open, onClose }: ArticleDrawerProps) {
           {/* Summary */}
           {article.summary && (
             <div className="mb-6 text-base leading-[1.8] text-foreground/80">
-              <p>{article.summary}</p>
+              <p>{stripHtml(article.summary)}</p>
             </div>
           )}
 

@@ -4,6 +4,7 @@ import { Clock } from "lucide-react";
 import type { Article } from "@/hooks/useArticles";
 import type { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
+import { stripHtml } from "@/lib/utils";
 
 type TopicCategory = Database["public"]["Enums"]["topic_category"];
 
@@ -46,7 +47,7 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
   const dateStr = article.published_at
     ? format(new Date(article.published_at), "MMM d, yyyy")
     : "";
-  const readTime = estimateReadTime(article.summary);
+  const readTime = estimateReadTime(stripHtml(article.summary));
   const handleClick = () => onSelect?.(article);
   const token = getEnergyToken(article.topic);
 
@@ -71,7 +72,7 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
 
           {article.summary && (
             <p className="mb-6 text-base leading-[1.7] text-muted-foreground line-clamp-4">
-              {article.summary}
+              {stripHtml(article.summary)}
             </p>
           )}
 
@@ -116,7 +117,7 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
 
         {article.summary && (
           <p className="mb-4 text-sm leading-relaxed text-muted-foreground line-clamp-3">
-            {article.summary}
+            {stripHtml(article.summary)}
           </p>
         )}
 
