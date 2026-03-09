@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch all states — no state filters, length=200 to cover 2 months × ~52 entries
-    const url = `https://api.eia.gov/v2/electricity/retail-sales/data?api_key=${apiKey}&data[]=price&facets[sectorid][]=RES&frequency=monthly&sort[0][column]=period&sort[0][direction]=desc&length=200`;
+    const url = `https://api.eia.gov/v2/electricity/retail-sales/data?api_key=${apiKey}&data[]=price&facets[sectorid][]=RES&frequency=monthly&sort[0][column]=period&sort[0][direction]=desc&length=500`;
 
     const res = await fetch(url);
     if (!res.ok) {
