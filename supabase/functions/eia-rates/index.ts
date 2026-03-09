@@ -50,8 +50,8 @@ Deno.serve(async (req) => {
     const json: EIAResponse = await res.json();
     const data = json.response?.data ?? [];
     
-    // Filter for residential in the response data
-    const residentialData = data.filter(r => r.sectorName?.toLowerCase() === 'residential');
+    // Data is already filtered to RES sector by the API query
+    const residentialData = data;
 
     // Group by state and get latest 2 periods per state for trend calculation
     const byState: Record<string, EIARecord[]> = {};
