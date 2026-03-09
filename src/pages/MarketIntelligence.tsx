@@ -6,7 +6,7 @@ import { format } from "date-fns";
 interface StateRate {
   stateId: string;
   stateName: string;
-  price: number;
+  price: number | null;
   period: string;
   trend: "up" | "down" | "neutral";
 }
@@ -72,6 +72,16 @@ export default function MarketIntelligence() {
         setStateRates(data.rates || []);
         setRatesFetched(data.fetched_at);
       } catch (err: any) {
+        console.error("Rates fetch error:", err);
+        const fallbackRates: StateRate[] = [
+          { stateId: 'CA', stateName: 'California', price: null, period: 'Data unavailable', trend: 'neutral' },
+          { stateId: 'CO', stateName: 'Colorado', price: null, period: 'Data unavailable', trend: 'neutral' },
+          { stateId: 'MA', stateName: 'Massachusetts', price: null, period: 'Data unavailable', trend: 'neutral' },
+          { stateId: 'NJ', stateName: 'New Jersey', price: null, period: 'Data unavailable', trend: 'neutral' },
+          { stateId: 'NY', stateName: 'New York', price: null, period: 'Data unavailable', trend: 'neutral' },
+          { stateId: 'TX', stateName: 'Texas', price: null, period: 'Data unavailable', trend: 'neutral' },
+        ];
+        setStateRates(fallbackRates);
         setRatesError(err.message || "Failed to fetch rates");
       } finally {
         setRatesLoading(false);
@@ -140,16 +150,14 @@ export default function MarketIntelligence() {
                 <div key={i} className="h-28 animate-pulse rounded-lg bg-zinc-800/50" />
               ))}
             </div>
-          ) : ratesError ? (
-            <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 font-mono text-sm text-red-400">
-              Error: {ratesError}
-            </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {stateRates.map((rate) => (
                 <div
                   key={rate.stateId}
-                  className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-4 transition-colors hover:border-amber-500/30"
+                  className={`rounded-lg border bg-zinc-900/80 p-4 transition-colors ${
+                    rate.price === null ? "border-red-500/30" : "border-zinc-800 hover:border-amber-500/30"
+                  }`}
                 >
                   <div className="mb-2 flex items-center justify-between">
                     <span className="font-mono text-xs uppercase tracking-wider text-zinc-400">
@@ -158,11 +166,13 @@ export default function MarketIntelligence() {
                     <TrendIcon trend={rate.trend} className="h-4 w-4" />
                   </div>
                   <p className="mb-1 font-display text-sm font-semibold text-zinc-200">{rate.stateName}</p>
-                  <p className="font-mono text-2xl font-bold text-amber-400 tabular-nums">
-                    {rate.price.toFixed(2)}
+                  <p className={`font-mono text-2xl font-bold tabular-nums ${rate.price !== null ? 'text-amber-400' : 'text-zinc-500'}`}>
+                    {rate.price !== null ? rate.price.toFixed(2) : '--.--'}
                     <span className="ml-1 text-sm font-normal text-zinc-500">¢/kWh</span>
                   </p>
-                  <p className="mt-1 font-mono text-[10px] text-zinc-600">{rate.period}</p>
+                  <p className={`mt-1 font-mono text-[10px] ${rate.period === 'Data unavailable' ? 'text-red-400' : 'text-zinc-600'}`}>
+                    {rate.period}
+                  </p>
                 </div>
               ))}
             </div>
