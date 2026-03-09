@@ -47,7 +47,7 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
   const dateStr = article.published_at
     ? format(new Date(article.published_at), "MMM d, yyyy")
     : "";
-  const readTime = estimateReadTime(article.summary);
+  const readTime = estimateReadTime(stripHtml(article.summary));
   const handleClick = () => onSelect?.(article);
   const token = getEnergyToken(article.topic);
 
