@@ -162,14 +162,21 @@ const SUBTITLES: Record<LayerKey, string> = {
 
 export default function ElectricityRateMap({ rates, loading, tracked, onToggleTracked }: Props) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
-  const [mode, setMode] = useState<MapMode>("rates");
+  const [layers, setLayers] = useState<Layers>({ rates: true, solar: false, index: false });
   const [solarData, setSolarData] = useState<SolarData[]>([]);
   const [solarLoading, setSolarLoading] = useState(false);
   const [solarFetched, setSolarFetched] = useState(false);
 
-  // Fetch solar data when switching to solar or index mode
+  const toggleLayer = useCallback((key: LayerKey) => {
+    setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  // Determine active coloring mode by priority: index > solar > rates
+  const activeColorMode: LayerKey = layers.index ? "index" : layers.solar ? "solar" : "rates";
+
+  // Fetch solar data when solar or index layer is toggled on
   useEffect(() => {
-    if ((mode === "solar" || mode === "index") && !solarFetched) {
+    if ((layers.solar || layers.index) && !solarFetched) {
       setSolarLoading(true);
       supabase.functions.invoke("pvwatts-states").then(({ data, error }) => {
         if (!error && data?.data) {
@@ -179,7 +186,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
         setSolarLoading(false);
       });
     }
-  }, [mode, solarFetched]);
+  }, [layers.solar, layers.index, solarFetched]);
 
   const rateMap = useMemo(() => {
     const m: Record<string, StateRate> = {};
