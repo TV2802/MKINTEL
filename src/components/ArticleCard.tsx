@@ -35,15 +35,6 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
         className="group relative cursor-pointer overflow-hidden rounded-lg border-l-4 bg-card transition-all duration-300 hover:shadow-[0_8px_30px_-8px_hsl(var(--primary)/0.25)] hover:-translate-y-1"
         style={{ borderLeftColor: `hsl(var(--energy-${getEnergyToken(article.topic)}))` }}
       >
-        {article.image_url && (
-          <div className="aspect-[21/9] w-full overflow-hidden">
-            <img
-              src={article.image_url}
-              alt={article.title}
-              className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-            />
-          </div>
-        )}
         <div className="p-6 md:p-8">
           <span
             className="mb-4 inline-block text-xs font-bold uppercase tracking-[0.15em]"
@@ -57,7 +48,7 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
           </h2>
 
           {article.summary && (
-            <p className="mb-6 text-base leading-relaxed text-muted-foreground line-clamp-3">
+            <p className="mb-6 text-base leading-relaxed text-muted-foreground line-clamp-4">
               {article.summary}
             </p>
           )}
@@ -67,9 +58,7 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
               {article.source_name && (
                 <span className="font-semibold text-foreground/70">{article.source_name}</span>
               )}
-              {article.source_name && dateStr && (
-                <span className="text-border">·</span>
-              )}
+              {article.source_name && dateStr && <span className="text-border">·</span>}
               {dateStr && <span>{dateStr}</span>}
               <span className="text-border">·</span>
               <span className="inline-flex items-center gap-1">
@@ -88,18 +77,9 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
   return (
     <article
       onClick={handleClick}
-      className="group flex cursor-pointer flex-col overflow-hidden rounded-lg border-l-4 bg-card transition-all duration-300 hover:shadow-[0_8px_30px_-8px_hsl(var(--primary)/0.2)] hover:-translate-y-1"
+      className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-lg border-l-4 bg-card transition-all duration-300 hover:shadow-[0_8px_30px_-8px_hsl(var(--primary)/0.2)] hover:-translate-y-1"
       style={{ borderLeftColor: `hsl(var(--energy-${getEnergyToken(article.topic)}))` }}
     >
-      {article.image_url && (
-        <div className="aspect-[16/9] w-full overflow-hidden">
-          <img
-            src={article.image_url}
-            alt={article.title}
-            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-          />
-        </div>
-      )}
       <div className="flex flex-1 flex-col p-5">
         <span
           className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em]"
