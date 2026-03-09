@@ -167,7 +167,7 @@ export default function MarketIntelligence() {
                   </div>
                   <p className="mb-1 font-display text-sm font-semibold text-zinc-200">{rate.stateName}</p>
                   <p className={`font-mono text-2xl font-bold tabular-nums ${rate.price !== null ? 'text-amber-400' : 'text-zinc-500'}`}>
-                    {rate.price !== null ? rate.price.toFixed(2) : '--.--'}
+                    {rate.price !== null ? parseFloat(String(rate.price)).toFixed(2) : '--.--'}
                     <span className="ml-1 text-sm font-normal text-zinc-500">¢/kWh</span>
                   </p>
                   <p className={`mt-1 font-mono text-[10px] ${rate.period === 'Data unavailable' ? 'text-red-400' : 'text-zinc-600'}`}>
