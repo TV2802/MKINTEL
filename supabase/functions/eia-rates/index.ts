@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       throw new Error("EIA_API_KEY not configured");
     }
 
-    const url = `https://api.eia.gov/v2/electricity/retail-sales/data/?api_key=${apiKey}&frequency=monthly&data[0]=price&facets[sectorName][]=all&facets[stateid][]=CA&facets[stateid][]=NY&facets[stateid][]=TX&facets[stateid][]=MA&facets[stateid][]=NJ&facets[stateid][]=CO&sort[0][column]=period&sort[0][direction]=desc&offset=0&length=12`;
+    const url = `https://api.eia.gov/v2/electricity/retail-sales/data?api_key=${apiKey}&data[]=price&facets[sectorid][]=RES&facets[stateid][]=CA&facets[stateid][]=NY&facets[stateid][]=TX&facets[stateid][]=MA&facets[stateid][]=NJ&facets[stateid][]=CO&frequency=monthly&sort[0][column]=period&sort[0][direction]=desc&length=12`;
 
     const res = await fetch(url);
     if (!res.ok) {
