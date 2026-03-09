@@ -148,13 +148,13 @@ function TrendArrow({ trend }: { trend: string }) {
   return <span className="text-zinc-500">—</span>;
 }
 
-const MODE_PILLS: { mode: MapMode; label: string }[] = [
-  { mode: "rates", label: "⚡ Electricity Rates" },
-  { mode: "solar", label: "☀️ Solar Production" },
-  { mode: "index", label: "📊 Rate × Solar Index" },
+const LAYER_PILLS: { key: LayerKey; label: string }[] = [
+  { key: "rates", label: "⚡ Electricity Rates" },
+  { key: "solar", label: "☀️ Solar Production" },
+  { key: "index", label: "📊 Rate × Solar Index" },
 ];
 
-const SUBTITLES: Record<MapMode, string> = {
+const SUBTITLES: Record<LayerKey, string> = {
   rates: "Brightness = rate intensity · Click any state to track/untrack",
   solar: "Brightness = annual solar production (kWh) · Click any state to track/untrack",
   index: "Green = highest opportunity (high rate × high solar) · Click any state to track/untrack",
