@@ -117,7 +117,7 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
 
         {article.summary && (
           <p className="mb-4 text-sm leading-relaxed text-muted-foreground line-clamp-3">
-            {article.summary}
+            {stripHtml(article.summary)}
           </p>
         )}
 

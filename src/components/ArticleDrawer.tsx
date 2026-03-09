@@ -115,7 +115,7 @@ export function ArticleDrawer({ article, open, onClose }: ArticleDrawerProps) {
           {/* Summary */}
           {article.summary && (
             <div className="mb-6 text-base leading-[1.8] text-foreground/80">
-              <p>{article.summary}</p>
+              <p>{stripHtml(article.summary)}</p>
             </div>
           )}
 
