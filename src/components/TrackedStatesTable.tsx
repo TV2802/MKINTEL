@@ -151,11 +151,11 @@ export default function TrackedStatesTable({ rates, tracked, onRemove }: Props) 
                 <span
                   className="inline-flex items-center gap-1.5 rounded px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider"
                   style={{
-                    backgroundColor: getISOLegendColor(r.isoHue) + "22",
-                    color: getISOLegendColor(r.isoHue),
+                    backgroundColor: r.isoColor + "22",
+                    color: r.isoColor,
                   }}
                 >
-                  <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: getISOLegendColor(r.isoHue) }} />
+                  <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: r.isoColor }} />
                   {r.iso}
                 </span>
               </td>
