@@ -288,14 +288,14 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
 
   return (
     <div className="relative">
-      {/* Mode pills */}
+      {/* Layer toggle pills */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        {MODE_PILLS.map((pill) => (
+        {LAYER_PILLS.map((pill) => (
           <button
-            key={pill.mode}
-            onClick={() => setMode(pill.mode)}
+            key={pill.key}
+            onClick={() => toggleLayer(pill.key)}
             className={`rounded-full border px-3 py-1.5 font-mono text-xs font-semibold transition-all ${
-              mode === pill.mode
+              layers[pill.key]
                 ? "border-amber-500 bg-amber-500/20 text-amber-300"
                 : "border-zinc-700 bg-zinc-800/50 text-zinc-400 hover:border-zinc-600 hover:text-zinc-300"
             }`}
