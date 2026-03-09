@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     }
 
     // Fetch all states — no state filters, length=200 to cover 2 months × ~52 entries
-    const url = `https://api.eia.gov/v2/electricity/retail-sales/data?api_key=${apiKey}&data[]=price&facets[sectorid][]=RES&frequency=monthly&sort[0][column]=period&sort[0][direction]=desc&length=200`;
+    const url = `https://api.eia.gov/v2/electricity/retail-sales/data?api_key=${apiKey}&data[]=price&facets[sectorid][]=RES&frequency=monthly&sort[0][column]=period&sort[0][direction]=desc&length=500`;
 
     const res = await fetch(url);
     if (!res.ok) {
@@ -42,21 +42,21 @@ Deno.serve(async (req) => {
     const json: EIAResponse = await res.json();
     const data = json.response?.data ?? [];
 
-    // Group by state and get latest 2 periods per state for trend calculation
+    // Collect ALL records per state first
     const byState: Record<string, EIARecord[]> = {};
     for (const record of data) {
       if (!record.stateid || record.stateid === "US") continue;
       if (!byState[record.stateid]) {
         byState[record.stateid] = [];
       }
-      if (byState[record.stateid].length < 2) {
-        byState[record.stateid].push(record);
-      }
+      byState[record.stateid].push(record);
     }
 
+    // Now take only the first 2 per state for trend calculation
     const stateRates = Object.entries(byState).map(([stateId, records]) => {
-      const current = records[0];
-      const previous = records[1];
+      const top2 = records.slice(0, 2);
+      const current = top2[0];
+      const previous = top2[1];
       let trend: "up" | "down" | "neutral" = "neutral";
       if (current && previous && current.price != null && previous.price != null) {
         const curPrice = parseFloat(String(current.price));
