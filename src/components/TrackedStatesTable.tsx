@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import { TrendingUp, TrendingDown, Minus, X, ArrowUpDown, Download } from "lucide-react";
-import { STATE_TO_ISO, getISOLegendColor } from "./ElectricityRateMap";
+import { STATE_TO_ISO } from "./ElectricityRateMap";
 import type { StateRate } from "./ElectricityRateMap";
 
 interface Props {
