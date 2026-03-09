@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { TopicBadge } from "./TopicBadge";
 import { FeedbackButtons } from "./FeedbackButtons";
 import { ExternalLink } from "lucide-react";
@@ -8,18 +7,21 @@ import { format } from "date-fns";
 interface ArticleCardProps {
   article: Article;
   featured?: boolean;
+  onSelect?: (article: Article) => void;
 }
 
-export function ArticleCard({ article, featured = false }: ArticleCardProps) {
+export function ArticleCard({ article, featured = false, onSelect }: ArticleCardProps) {
   const dateStr = article.published_at
     ? format(new Date(article.published_at), "MMM d, yyyy")
     : "";
 
+  const handleClick = () => onSelect?.(article);
+
   if (featured) {
     return (
-      <Link
-        to={`/article/${article.id}`}
-        className="group relative block overflow-hidden rounded-lg border border-border bg-card transition-all hover:shadow-xl"
+      <div
+        onClick={handleClick}
+        className="group relative block cursor-pointer overflow-hidden rounded-lg border border-border bg-card transition-all hover:shadow-xl"
       >
         {article.image_url && (
           <div className="aspect-[21/9] w-full overflow-hidden">
@@ -50,18 +52,18 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
               {article.summary}
             </p>
           )}
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex justify-end" onClick={(e) => e.stopPropagation()}>
             <FeedbackButtons articleId={article.id} />
           </div>
         </div>
-      </Link>
+      </div>
     );
   }
 
   return (
-    <Link
-      to={`/article/${article.id}`}
-      className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-all hover:shadow-lg"
+    <div
+      onClick={handleClick}
+      className="group flex cursor-pointer flex-col overflow-hidden rounded-lg border border-border bg-card transition-all hover:shadow-lg"
     >
       {article.image_url && (
         <div className="aspect-video w-full overflow-hidden">
@@ -93,10 +95,10 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
             {article.source_name}
           </div>
         )}
-        <div className="mt-2 flex justify-end">
+        <div className="mt-2 flex justify-end" onClick={(e) => e.stopPropagation()}>
           <FeedbackButtons articleId={article.id} />
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { HeroBanner } from "@/components/HeroBanner";
 import { TopicSection } from "@/components/TopicSection";
 import { ArticleCard } from "@/components/ArticleCard";
+import { ArticleDrawer } from "@/components/ArticleDrawer";
 import { DigestCard } from "@/components/DigestCard";
 import { SectionNav } from "@/components/SectionNav";
 import { useLatestIssue, useIssueArticles, useIssue } from "@/hooks/useArticles";
@@ -8,10 +10,12 @@ import { ALL_TOPICS } from "@/lib/topics";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Zap } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import type { Article } from "@/hooks/useArticles";
 
 const Index = () => {
   const [searchParams] = useSearchParams();
   const issueIdParam = searchParams.get("issue");
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
   const { data: latestIssue, isLoading: latestLoading } = useLatestIssue();
   const { data: selectedIssue, isLoading: selectedLoading } = useIssue(issueIdParam ?? undefined);
@@ -64,21 +68,28 @@ const Index = () => {
             {/* Featured Article */}
             {featured && (
               <div className="mb-12">
-                <ArticleCard article={featured} featured />
+                <ArticleCard article={featured} featured onSelect={setSelectedArticle} />
               </div>
             )}
 
-            {/* 9 Topic Sections (excluding weekly_digest which is the digest card) */}
+            {/* Topic Sections */}
             {ALL_TOPICS.filter((t) => t !== "weekly_digest").map((topic) => (
               <TopicSection
                 key={topic}
                 topic={topic}
                 articles={byTopic(topic)}
+                onSelectArticle={setSelectedArticle}
               />
             ))}
           </>
         )}
       </main>
+
+      <ArticleDrawer
+        article={selectedArticle}
+        open={!!selectedArticle}
+        onClose={() => setSelectedArticle(null)}
+      />
     </>
   );
 };

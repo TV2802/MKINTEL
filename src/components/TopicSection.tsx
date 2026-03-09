@@ -8,9 +8,10 @@ type TopicCategory = Database["public"]["Enums"]["topic_category"];
 interface TopicSectionProps {
   topic: TopicCategory;
   articles: Article[];
+  onSelectArticle?: (article: Article) => void;
 }
 
-export function TopicSection({ topic, articles }: TopicSectionProps) {
+export function TopicSection({ topic, articles, onSelectArticle }: TopicSectionProps) {
   if (articles.length === 0) return null;
   const config = TOPIC_CONFIG[topic];
 
@@ -28,7 +29,7 @@ export function TopicSection({ topic, articles }: TopicSectionProps) {
       </div>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {articles.map((a) => (
-          <ArticleCard key={a.id} article={a} />
+          <ArticleCard key={a.id} article={a} onSelect={onSelectArticle} />
         ))}
       </div>
     </section>

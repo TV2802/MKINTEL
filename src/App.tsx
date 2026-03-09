@@ -7,7 +7,7 @@ import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
 import Index from "./pages/Index";
 import Archive from "./pages/Archive";
-import ArticleDetail from "./pages/ArticleDetail";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,7 +24,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/archive" element={<Archive />} />
-              <Route path="/article/:id" element={<ArticleDetail />} />
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
