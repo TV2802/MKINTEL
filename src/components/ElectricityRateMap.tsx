@@ -276,7 +276,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
     return { isoLabelsToShow: isoLabels };
   }, [tracked]);
 
-  const isLoading = loading || ((mode === "solar" || mode === "index") && solarLoading);
+  const isLoading = loading || ((layers.solar || layers.index) && solarLoading);
 
   if (isLoading) {
     return (
