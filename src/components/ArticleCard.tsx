@@ -72,7 +72,7 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
 
           {article.summary && (
             <p className="mb-6 text-base leading-[1.7] text-muted-foreground line-clamp-4">
-              {article.summary}
+              {stripHtml(article.summary)}
             </p>
           )}
 
