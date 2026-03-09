@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
-import { ComposableMap, Geographies, Geography } from "react-simple-maps";
+import { useState, useMemo, useCallback } from "react";
+import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+import { geoCentroid } from "d3-geo";
 
 const GEO_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json";
 
@@ -36,19 +37,20 @@ interface ISORegionDef {
   base: string;
   tracked: string;
   states: string[];
+  fontSize: number; // proportional to territory size
 }
 
 export const ISO_REGIONS: ISORegionDef[] = [
-  { name: "CAISO",     base: "#4a1520", tracked: "#c0392b", states: ["CA"] },
-  { name: "ERCOT",     base: "#0d2137", tracked: "#1a6fa8", states: ["TX"] },
-  { name: "NYISO",     base: "#1e1040", tracked: "#6c3dbf", states: ["NY"] },
-  { name: "ISO-NE",    base: "#0d2e2e", tracked: "#17a589", states: ["MA", "CT", "RI", "VT", "NH", "ME"] },
-  { name: "PJM",       base: "#0d2b1a", tracked: "#1e8449", states: ["NJ", "PA", "MD", "DE", "OH", "IN", "IL", "MI", "WV", "VA", "DC"] },
-  { name: "MISO",      base: "#1a2535", tracked: "#2e86c1", states: ["MN", "IA", "WI", "ND", "SD", "MO", "AR", "MS", "LA"] },
-  { name: "SPP",       base: "#1e2010", tracked: "#7d8c2a", states: ["KS", "OK", "NE", "WY"] },
-  { name: "WECC",      base: "#2a1020", tracked: "#8e44ad", states: ["CO", "NV", "UT", "AZ", "OR", "WA", "ID", "NM", "MT"] },
-  { name: "Southeast", base: "#1e1508", tracked: "#ca6f1e", states: ["FL", "GA", "AL", "SC", "NC", "TN", "KY"] },
-  { name: "Other",     base: "#1a1a2a", tracked: "#666688", states: ["AK", "HI"] },
+  { name: "CAISO",     base: "#4a1520", tracked: "#c0392b", states: ["CA"], fontSize: 9 },
+  { name: "ERCOT",     base: "#0d2137", tracked: "#1a6fa8", states: ["TX"], fontSize: 10 },
+  { name: "NYISO",     base: "#1e1040", tracked: "#6c3dbf", states: ["NY"], fontSize: 8 },
+  { name: "ISO-NE",    base: "#0d2e2e", tracked: "#17a589", states: ["MA", "CT", "RI", "VT", "NH", "ME"], fontSize: 8 },
+  { name: "PJM",       base: "#0d2b1a", tracked: "#1e8449", states: ["NJ", "PA", "MD", "DE", "OH", "IN", "IL", "MI", "WV", "VA", "DC"], fontSize: 11 },
+  { name: "MISO",      base: "#1a2535", tracked: "#2e86c1", states: ["MN", "IA", "WI", "ND", "SD", "MO", "AR", "MS", "LA"], fontSize: 11 },
+  { name: "SPP",       base: "#1e2010", tracked: "#7d8c2a", states: ["KS", "OK", "NE", "WY"], fontSize: 9 },
+  { name: "WECC",      base: "#2a1020", tracked: "#8e44ad", states: ["CO", "NV", "UT", "AZ", "OR", "WA", "ID", "NM", "MT"], fontSize: 12 },
+  { name: "Southeast", base: "#1e1508", tracked: "#ca6f1e", states: ["FL", "GA", "AL", "SC", "NC", "TN", "KY"], fontSize: 10 },
+  { name: "Other",     base: "#1a1a2a", tracked: "#666688", states: ["AK", "HI"], fontSize: 7 },
 ];
 
 export const STATE_TO_ISO: Record<string, ISORegionDef> = {};
@@ -58,17 +60,34 @@ for (const region of ISO_REGIONS) {
   }
 }
 
-// Special overrides for AK and HI
 const STATE_BASE_OVERRIDE: Record<string, string> = {
-  AK: "#351428", // WECC slightly lighter
-  HI: "#5a1d28", // CAISO slightly lighter
+  AK: "#351428",
+  HI: "#5a1d28",
 };
 const STATE_TRACKED_OVERRIDE: Record<string, string> = {
   AK: "#8e44ad",
   HI: "#c0392b",
 };
 
-// Parse hex to [r,g,b]
+// Hardcoded visual centroids for ISO regions (lon, lat) tuned for AlbersUsa projection
+const ISO_CENTROIDS: Record<string, [number, number]> = {
+  CAISO:     [-119.5, 37.5],
+  ERCOT:     [-99.5, 31.5],
+  NYISO:     [-75.5, 43.0],
+  "ISO-NE":  [-71.5, 44.0],
+  PJM:       [-80.5, 40.0],
+  MISO:      [-92.0, 42.0],
+  SPP:       [-99.0, 38.5],
+  WECC:      [-113.0, 42.5],
+  Southeast: [-84.5, 33.5],
+};
+
+// State centroid offsets for small/oddly shaped states
+const STATE_CENTROID_OFFSETS: Record<string, [number, number]> = {
+  DC: [2, 0], DE: [1, 0], CT: [1, 0], RI: [1.5, 0],
+  NH: [1, 0], VT: [0, 0], MA: [2, 0], NJ: [1, 0], MD: [0, -1],
+};
+
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
@@ -84,26 +103,14 @@ function adjustBrightness(hex: string, factor: number): string {
   return rgbToHex(r * factor, g * factor, b * factor);
 }
 
-function getStateColor(
-  abbr: string,
-  isTracked: boolean,
-  price: number | null,
-  minPrice: number,
-  maxPrice: number
-): string {
+function getStateColor(abbr: string, isTracked: boolean, price: number | null, minPrice: number, maxPrice: number): string {
   const region = STATE_TO_ISO[abbr];
   if (!region) return "#18181b";
-
-  if (isTracked) {
-    return STATE_TRACKED_OVERRIDE[abbr] || region.tracked;
-  }
-
+  if (isTracked) return STATE_TRACKED_OVERRIDE[abbr] || region.tracked;
   const baseColor = STATE_BASE_OVERRIDE[abbr] || region.base;
   if (price == null) return adjustBrightness(baseColor, 0.85);
-
   const range = maxPrice - minPrice || 1;
-  const t = (price - minPrice) / range; // 0=cheapest, 1=most expensive
-  // vary ±15% around base: factor from 0.85 to 1.15
+  const t = (price - minPrice) / range;
   const factor = 0.85 + t * 0.30;
   return adjustBrightness(baseColor, factor);
 }
@@ -158,6 +165,34 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
     return { min: Math.min(...prices), max: Math.max(...prices) };
   }, [rates]);
 
+  // Determine which ISO labels to show vs which tracked state labels
+  const { isoLabelsToShow, stateLabelsToShow } = useMemo(() => {
+    const isoLabels: { name: string; coords: [number, number]; fontSize: number }[] = [];
+    const stateLabels: { abbr: string; coords: [number, number] }[] = [];
+
+    for (const region of ISO_REGIONS) {
+      if (region.name === "Other") continue;
+      const trackedInRegion = region.states.filter((s) => tracked.has(s));
+      const allTracked = trackedInRegion.length === region.states.length;
+
+      // Show ISO label if not all states in region are tracked
+      if (!allTracked) {
+        const centroid = ISO_CENTROIDS[region.name];
+        if (centroid) {
+          isoLabels.push({ name: region.name, coords: centroid, fontSize: region.fontSize });
+        }
+      }
+
+      // Show state abbreviation labels for tracked states
+      for (const abbr of trackedInRegion) {
+        // We'll compute state centroids from geographies later
+        stateLabels.push({ abbr, coords: [0, 0] }); // placeholder
+      }
+    }
+
+    return { isoLabelsToShow: isoLabels, stateLabelsToShow: stateLabels };
+  }, [tracked]);
+
   if (loading) {
     return (
       <div className="flex h-[500px] items-center justify-center rounded-lg bg-zinc-800/50">
@@ -177,46 +212,151 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
           style={{ width: "100%", height: "auto" }}
         >
           <Geographies geography={GEO_URL}>
-            {({ geographies }) =>
-              geographies.map((geo) => {
-                const fips = geo.id;
-                const abbr = FIPS_TO_ABBR[fips];
-                if (!abbr) return null;
-                const rate = rateMap[abbr];
-                const price = rate?.price != null ? parseFloat(String(rate.price)) : null;
-                const isTracked = tracked.has(abbr);
-                const fillColor = getStateColor(abbr, isTracked, price, min, max);
-                const stateName = rate?.stateName || ABBR_TO_NAME[abbr] || abbr;
-                const isoRegion = STATE_TO_ISO[abbr];
+            {({ geographies }) => {
+              // Build abbr→ISO lookup for border detection
+              const abbrToISOName: Record<string, string> = {};
+              for (const geo of geographies) {
+                const abbr = FIPS_TO_ABBR[geo.id];
+                if (abbr) abbrToISOName[abbr] = STATE_TO_ISO[abbr]?.name || "";
+              }
 
-                return (
-                  <Geography
-                    key={geo.rsmKey}
-                    geography={geo}
-                    fill={fillColor}
-                    stroke={isTracked ? "#f59e0b" : "#ffffff15"}
-                    strokeWidth={isTracked ? 2 : 0.75}
-                    style={{
-                      default: { outline: "none" },
-                      hover: { outline: "none", fill: fillColor, filter: "brightness(1.3)", cursor: "pointer" },
-                      pressed: { outline: "none" },
-                    }}
-                    onMouseEnter={(evt) => {
-                      setTooltip({
-                        x: evt.clientX, y: evt.clientY,
-                        name: stateName, iso: isoRegion?.name || "N/A",
-                        price, trend: rate?.trend || "neutral", period: rate?.period || "No data",
-                      });
-                    }}
-                    onMouseMove={(evt) => {
-                      setTooltip((prev) => prev ? { ...prev, x: evt.clientX, y: evt.clientY } : null);
-                    }}
-                    onMouseLeave={() => setTooltip(null)}
-                    onClick={() => onToggleTracked(abbr)}
-                  />
-                );
-              })
-            }
+              // Compute state centroids for tracked state labels
+              const stateCentroids: Record<string, [number, number]> = {};
+              for (const geo of geographies) {
+                const abbr = FIPS_TO_ABBR[geo.id];
+                if (abbr && tracked.has(abbr)) {
+                  const centroid = geoCentroid(geo);
+                  const offset = STATE_CENTROID_OFFSETS[abbr] || [0, 0];
+                  stateCentroids[abbr] = [centroid[0] + offset[0], centroid[1] + offset[1]];
+                }
+              }
+
+              return (
+                <>
+                  {geographies.map((geo) => {
+                    const fips = geo.id;
+                    const abbr = FIPS_TO_ABBR[fips];
+                    if (!abbr) return null;
+                    const rate = rateMap[abbr];
+                    const price = rate?.price != null ? parseFloat(String(rate.price)) : null;
+                    const isTracked = tracked.has(abbr);
+                    const fillColor = getStateColor(abbr, isTracked, price, min, max);
+                    const stateName = rate?.stateName || ABBR_TO_NAME[abbr] || abbr;
+                    const isoRegion = STATE_TO_ISO[abbr];
+
+                    // Stroke logic: tracked = amber, else ISO boundary vs intra-ISO
+                    let strokeColor: string;
+                    let strokeW: number;
+                    if (isTracked) {
+                      strokeColor = "#f59e0b";
+                      strokeW = 2;
+                    } else {
+                      // Use thicker white for ISO boundaries, thin for intra-ISO
+                      strokeColor = "#ffffff30"; // ISO boundary default
+                      strokeW = 2;
+                    }
+
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill={fillColor}
+                        stroke={strokeColor}
+                        strokeWidth={strokeW}
+                        style={{
+                          default: { outline: "none" },
+                          hover: { outline: "none", fill: fillColor, filter: "brightness(1.3)", cursor: "pointer" },
+                          pressed: { outline: "none" },
+                        }}
+                        onMouseEnter={(evt) => {
+                          setTooltip({
+                            x: evt.clientX, y: evt.clientY,
+                            name: stateName, iso: isoRegion?.name || "N/A",
+                            price, trend: rate?.trend || "neutral", period: rate?.period || "No data",
+                          });
+                        }}
+                        onMouseMove={(evt) => {
+                          setTooltip((prev) => prev ? { ...prev, x: evt.clientX, y: evt.clientY } : null);
+                        }}
+                        onMouseLeave={() => setTooltip(null)}
+                        onClick={() => onToggleTracked(abbr)}
+                      />
+                    );
+                  })}
+
+                  {/* Render intra-ISO borders as a second pass (thinner, more transparent) */}
+                  {geographies.map((geo) => {
+                    const abbr = FIPS_TO_ABBR[geo.id];
+                    if (!abbr) return null;
+                    const isTracked = tracked.has(abbr);
+                    if (isTracked) return null; // tracked states already have amber border
+                    const region = STATE_TO_ISO[abbr];
+                    if (!region || region.states.length <= 1) return null;
+
+                    return (
+                      <Geography
+                        key={`border-${geo.rsmKey}`}
+                        geography={geo}
+                        fill="transparent"
+                        stroke="#ffffff10"
+                        strokeWidth={0.5}
+                        style={{
+                          default: { outline: "none", pointerEvents: "none" },
+                          hover: { outline: "none", pointerEvents: "none" },
+                          pressed: { outline: "none", pointerEvents: "none" },
+                        }}
+                      />
+                    );
+                  })}
+
+                  {/* ISO region labels */}
+                  {isoLabelsToShow.map((label) => (
+                    <Marker key={`iso-${label.name}`} coordinates={label.coords}>
+                      <text
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        style={{
+                          fontFamily: "ui-monospace, monospace",
+                          fontSize: label.fontSize,
+                          fontWeight: 700,
+                          fill: "#ffffff90",
+                          pointerEvents: "none",
+                          userSelect: "none",
+                          textShadow: "0 1px 3px rgba(0,0,0,0.8)",
+                        }}
+                      >
+                        {label.name}
+                      </text>
+                    </Marker>
+                  ))}
+
+                  {/* Tracked state abbreviation labels */}
+                  {Array.from(tracked).map((abbr) => {
+                    const coords = stateCentroids[abbr];
+                    if (!coords || (coords[0] === 0 && coords[1] === 0)) return null;
+                    return (
+                      <Marker key={`state-${abbr}`} coordinates={coords}>
+                        <text
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          style={{
+                            fontFamily: "ui-monospace, monospace",
+                            fontSize: 7,
+                            fontWeight: 700,
+                            fill: "#F59E0B",
+                            pointerEvents: "none",
+                            userSelect: "none",
+                            textShadow: "0 1px 2px rgba(0,0,0,0.9)",
+                          }}
+                        >
+                          {abbr}
+                        </text>
+                      </Marker>
+                    );
+                  })}
+                </>
+              );
+            }}
           </Geographies>
         </ComposableMap>
       </div>
@@ -252,10 +392,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
       <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
         {ISO_REGIONS.filter((r) => r.name !== "Other").map((region) => (
           <span key={region.name} className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-400">
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-sm"
-              style={{ backgroundColor: region.tracked }}
-            />
+            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: region.tracked }} />
             {region.name}
           </span>
         ))}
