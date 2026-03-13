@@ -167,8 +167,6 @@ export default function MarketIntelligence() {
         {/* Section 3: Cost Benchmarks */}
         <BenchmarkDashboard />
 
-        {/* Section 4: DC & FEOC Compliance */}
-<ComplianceTracker />
         {/* Section 4: Incentive Program Status */}
         <section>
           <div className="mb-6 flex items-center gap-2">
