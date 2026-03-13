@@ -273,7 +273,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
         {LAYER_PILLS.map((pill) => (
           <button
             key={pill.key}
-            onClick={() => toggleLayer(pill.key)}
+            onClick={() => onToggleLayer(pill.key)}
             className={`rounded-full border px-3 py-1.5 font-mono text-xs font-semibold transition-all ${
               layers[pill.key]
                 ? "border-amber-500 bg-amber-500/20 text-amber-300"
