@@ -140,6 +140,10 @@ interface Props {
   loading: boolean;
   tracked: Set<string>;
   onToggleTracked: (abbr: string) => void;
+  layers: Layers;
+  onToggleLayer: (key: LayerKey) => void;
+  solarData: SolarData[];
+  solarLoading: boolean;
 }
 
 function TrendArrow({ trend }: { trend: string }) {
