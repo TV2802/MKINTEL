@@ -4,7 +4,7 @@ import { TrendingUp, TrendingDown, Minus, Activity, DollarSign, Zap, Clock } fro
 import { format } from "date-fns";
 import ElectricityRateMap from "@/components/ElectricityRateMap";
 import TrackedStatesTable from "@/components/TrackedStatesTable";
-import type { StateRate } from "@/components/ElectricityRateMap";
+import type { StateRate, Layers, LayerKey, SolarData } from "@/components/ElectricityRateMap";
 
 const DEFAULT_TRACKED = ["CA", "NY", "TX", "MA", "NJ", "CO"];
 
