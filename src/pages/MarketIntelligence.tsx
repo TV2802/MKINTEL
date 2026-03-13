@@ -1,22 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { TrendingUp, TrendingDown, Minus, Activity, DollarSign, Zap, Clock } from "lucide-react";
+import { Activity, Zap, Clock } from "lucide-react";
 import { format } from "date-fns";
 import ElectricityRateMap from "@/components/ElectricityRateMap";
 import TrackedStatesTable from "@/components/TrackedStatesTable";
+import BenchmarkDashboard from "@/components/BenchmarkDashboard";
 import type { StateRate, Layers, LayerKey, SolarData } from "@/components/ElectricityRateMap";
 
 const DEFAULT_TRACKED = ["CA", "NY", "TX", "MA", "NJ", "CO"];
-
-interface MarketMetric {
-  id: string;
-  metric_name: string;
-  value: number;
-  unit: string;
-  trend: string;
-  notes: string | null;
-  updated_at: string;
-}
 
 interface IncentiveStatus {
   id: string;
@@ -26,12 +17,6 @@ interface IncentiveStatus {
   notes: string | null;
   updated_at: string;
 }
-
-const TrendIcon = ({ trend, className = "" }: { trend: string; className?: string }) => {
-  if (trend === "up") return <TrendingUp className={`${className} text-green-400`} />;
-  if (trend === "down") return <TrendingDown className={`${className} text-red-400`} />;
-  return <Minus className={`${className} text-zinc-500`} />;
-};
 
 const StatusBadge = ({ status }: { status: string }) => {
   const styles: Record<string, string> = {
@@ -57,10 +42,6 @@ export default function MarketIntelligence() {
   const [solarData, setSolarData] = useState<SolarData[]>([]);
   const [solarLoading, setSolarLoading] = useState(false);
   const [solarFetched, setSolarFetched] = useState(false);
-
-  const [metrics, setMetrics] = useState<MarketMetric[]>([]);
-  const [metricsLoading, setMetricsLoading] = useState(true);
-
   const [incentives, setIncentives] = useState<IncentiveStatus[]>([]);
   const [incentivesLoading, setIncentivesLoading] = useState(true);
 
@@ -77,14 +58,11 @@ export default function MarketIntelligence() {
     setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
-  // Fetch solar data when solar or index layer is toggled on
   useEffect(() => {
     if ((layers.solar || layers.index) && !solarFetched) {
       setSolarLoading(true);
       supabase.functions.invoke("pvwatts-states").then(({ data, error }) => {
-        if (!error && data?.data) {
-          setSolarData(data.data);
-        }
+        if (!error && data?.data) setSolarData(data.data);
         setSolarFetched(true);
         setSolarLoading(false);
       });
@@ -100,7 +78,6 @@ export default function MarketIntelligence() {
         setStateRates(data.rates || []);
         setRatesFetched(data.fetched_at);
       } catch (err: any) {
-        console.error("Rates fetch error:", err);
         setStateRates([]);
         setRatesError(err.message || "Failed to fetch rates");
       } finally {
@@ -108,24 +85,18 @@ export default function MarketIntelligence() {
       }
     }
 
-    async function fetchMetrics() {
-      setMetricsLoading(true);
-      // Trigger ATB benchmarks upsert (cached for 30 days), then read market_metrics
-      await supabase.functions.invoke("atb-benchmarks").catch(() => {});
-      const { data } = await supabase.from("market_metrics").select("*").order("metric_name");
-      if (data) setMetrics(data as MarketMetric[]);
-      setMetricsLoading(false);
-    }
-
     async function fetchIncentives() {
       setIncentivesLoading(true);
-      const { data } = await supabase.from("incentive_status").select("*").order("state").order("program_name");
+      const { data } = await supabase
+        .from("incentive_status")
+        .select("*")
+        .order("state")
+        .order("program_name");
       if (data) setIncentives(data as IncentiveStatus[]);
       setIncentivesLoading(false);
     }
 
     fetchRates();
-    fetchMetrics();
     fetchIncentives();
   }, []);
 
@@ -153,6 +124,7 @@ export default function MarketIntelligence() {
       </header>
 
       <main className="container mx-auto space-y-12 px-4 py-10">
+
         {/* Section 1: US Electricity Rate Map */}
         <section>
           <div className="mb-6 flex items-center gap-2">
@@ -192,37 +164,8 @@ export default function MarketIntelligence() {
           </section>
         )}
 
-        {/* Section 3: Weekly Benchmarks */}
-        <section>
-          <div className="mb-6 flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-amber-400" />
-            <h2 className="font-display text-xl font-bold text-zinc-50">Weekly Benchmarks</h2>
-          </div>
-          {metricsLoading ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-28 animate-pulse rounded-lg bg-zinc-800/50" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {metrics.map((m) => (
-                <div key={m.id} className="rounded-lg border border-zinc-800 bg-zinc-900/80 p-4 transition-colors hover:border-amber-500/30">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="font-mono text-xs uppercase tracking-wider text-zinc-400">Benchmark</span>
-                    <TrendIcon trend={m.trend} className="h-4 w-4" />
-                  </div>
-                  <p className="mb-1 font-display text-sm font-semibold text-zinc-200">{m.metric_name}</p>
-                  <p className="font-mono text-2xl font-bold text-amber-400 tabular-nums">
-                    {m.value}
-                    <span className="ml-1 text-sm font-normal text-zinc-500">{m.unit}</span>
-                  </p>
-                  {m.notes && <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-zinc-500">{m.notes}</p>}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        {/* Section 3: Cost Benchmarks */}
+        <BenchmarkDashboard />
 
         {/* Section 4: Incentive Program Status */}
         <section>
@@ -232,6 +175,10 @@ export default function MarketIntelligence() {
           </div>
           {incentivesLoading ? (
             <div className="h-64 animate-pulse rounded-lg bg-zinc-800/50" />
+          ) : incentives.length === 0 ? (
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-6 py-10 text-center">
+              <p className="text-sm text-zinc-500">No incentive programs added yet.</p>
+            </div>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-zinc-800">
               <table className="w-full min-w-[600px] text-left">
@@ -257,6 +204,7 @@ export default function MarketIntelligence() {
             </div>
           )}
         </section>
+
       </main>
     </div>
   );
