@@ -228,7 +228,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
         const ac = solarMap[abbr]?.ac_annual;
         if (ac == null) return adjustBrightness(baseColor, 0.6);
         const range = maxSolar - minSolar || 1;
-        const t = (ac - minSolar) / range;
+        const t = (ac / 10 - minSolar) / range;
         return adjustBrightness(baseColor, 0.7 + t * 0.6);
       }
 
