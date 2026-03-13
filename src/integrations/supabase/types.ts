@@ -99,6 +99,36 @@ export type Database = {
           },
         ]
       }
+      atb_cache: {
+        Row: {
+          atb_year: number
+          fetched_at: string
+          id: string
+          metric_name: string
+          scenario: string
+          unit: string
+          value: number
+        }
+        Insert: {
+          atb_year?: number
+          fetched_at?: string
+          id?: string
+          metric_name: string
+          scenario?: string
+          unit: string
+          value: number
+        }
+        Update: {
+          atb_year?: number
+          fetched_at?: string
+          id?: string
+          metric_name?: string
+          scenario?: string
+          unit?: string
+          value?: number
+        }
+        Relationships: []
+      }
       incentive_status: {
         Row: {
           id: string
