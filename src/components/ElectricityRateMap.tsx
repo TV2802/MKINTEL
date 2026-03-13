@@ -340,7 +340,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
                             x: evt.clientX, y: evt.clientY,
                             name: stateName, iso: isoRegion?.name || "N/A",
                             price, trend: rate?.trend || "neutral", period: rate?.period || "No data",
-                            acAnnual: solar?.ac_annual ?? null,
+                            acAnnual: solar?.ac_annual != null ? solar.ac_annual / 10 : null,
                             opportunityIndex: opp,
                           });
                         }}
