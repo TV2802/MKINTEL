@@ -166,6 +166,10 @@ export default function MarketIntelligence() {
               loading={ratesLoading}
               tracked={tracked}
               onToggleTracked={handleToggleTracked}
+              layers={layers}
+              onToggleLayer={handleToggleLayer}
+              solarData={solarData}
+              solarLoading={solarLoading}
             />
           </div>
           {ratesError && (
