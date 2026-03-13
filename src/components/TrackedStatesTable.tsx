@@ -99,7 +99,7 @@ export default function TrackedStatesTable({ rates, tracked, onRemove, layers, s
         diff,
         trend: rate?.trend || "neutral",
         period: rate?.period || "N/A",
-        solarKwh: solar?.ac_annual ?? null,
+        solarKwh: solar?.ac_annual != null ? solar.ac_annual / 10 : null,
         opportunity: opportunityScores[abbr] ?? null,
       };
     });
