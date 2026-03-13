@@ -61,7 +61,7 @@ export default function TrackedStatesTable({ rates, tracked, onRemove, layers, s
   // Compute opportunity scores (0-100)
   const opportunityScores = useMemo(() => {
     const prices = rates.filter((r) => r.price != null).map((r) => r.price as number);
-    const solars = solarData.filter((s) => s.ac_annual != null).map((s) => s.ac_annual as number);
+    const solars = solarData.filter((s) => s.ac_annual != null).map((s) => (s.ac_annual as number) / 10);
     if (!prices.length || !solars.length) return {};
 
     const minP = Math.min(...prices), maxP = Math.max(...prices);
