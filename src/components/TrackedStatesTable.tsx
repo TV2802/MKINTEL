@@ -135,7 +135,7 @@ export default function TrackedStatesTable({ rates, tracked, onRemove, layers, s
 
   const exportCSV = useCallback(() => {
     const cols = ["State", "ISO Region", "Rate (¢/kWh)", "vs US Avg", "Trend", "Last Updated"];
-    if (layers.solar) cols.push("Solar Production (kWh/yr)");
+    if (layers.solar) cols.push("Avg Yield (kWh/yr)");
     if (layers.index) cols.push("Opportunity Index");
     const header = cols.join(",");
     const csvRows = sorted.map((r) => {
