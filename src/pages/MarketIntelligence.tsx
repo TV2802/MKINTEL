@@ -6,6 +6,7 @@ import ElectricityRateMap from "@/components/ElectricityRateMap";
 import TrackedStatesTable from "@/components/TrackedStatesTable";
 import BenchmarkDashboard from "@/components/BenchmarkDashboard";
 import ComplianceTracker from "@/components/ComplianceTracker";
+import StatePreviewPanel from "@/components/StatePreviewPanel";
 import type { StateRate, Layers, LayerKey, SolarData } from "@/components/ElectricityRateMap";
 
 const DEFAULT_TRACKED = ["CA", "NY", "TX", "MA", "NJ", "CO"];
@@ -21,10 +22,10 @@ interface IncentiveStatus {
 
 const StatusBadge = ({ status }: { status: string }) => {
   const styles: Record<string, string> = {
-    Active: "bg-green-500/20 text-green-400 border-green-500/30",
+    Active:   "bg-green-500/20 text-green-400 border-green-500/30",
     Waitlist: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    Closed: "bg-red-500/20 text-red-400 border-red-500/30",
-    Pending: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    Closed:   "bg-red-500/20 text-red-400 border-red-500/30",
+    Pending:  "bg-blue-500/20 text-blue-400 border-blue-500/30",
   };
   return (
     <span className={`inline-block rounded border px-2 py-0.5 font-mono text-xs uppercase tracking-wider ${styles[status] || styles.Pending}`}>
@@ -46,6 +47,9 @@ export default function MarketIntelligence() {
   const [incentives, setIncentives] = useState<IncentiveStatus[]>([]);
   const [incentivesLoading, setIncentivesLoading] = useState(true);
 
+  // State preview panel
+  const [previewState, setPreviewState] = useState<string | null>(null);
+
   const handleToggleTracked = useCallback((abbr: string) => {
     setTracked((prev) => {
       const next = new Set(prev);
@@ -57,6 +61,11 @@ export default function MarketIntelligence() {
 
   const handleToggleLayer = useCallback((key: LayerKey) => {
     setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  // Map click — open preview panel
+  const handleStateClick = useCallback((abbr: string) => {
+    setPreviewState(abbr);
   }, []);
 
   useEffect(() => {
@@ -141,6 +150,7 @@ export default function MarketIntelligence() {
               loading={ratesLoading}
               tracked={tracked}
               onToggleTracked={handleToggleTracked}
+              onStateClick={handleStateClick}
               layers={layers}
               onToggleLayer={handleToggleLayer}
               solarData={solarData}
@@ -188,10 +198,9 @@ export default function MarketIntelligence() {
               <table className="w-full min-w-[600px] text-left">
                 <thead className="border-b border-zinc-800 bg-zinc-900/50">
                   <tr>
-                    <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-zinc-500">Program</th>
-                    <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-zinc-500">State</th>
-                    <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-zinc-500">Status</th>
-                    <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-zinc-500">Notes</th>
+                    {["Program", "State", "Status", "Notes"].map(h => (
+                      <th key={h} className="px-4 py-3 font-mono text-[10px] uppercase tracking-wider text-zinc-500">{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800/50">
@@ -210,6 +219,18 @@ export default function MarketIntelligence() {
         </section>
 
       </main>
+
+      {/* State Preview Panel — renders outside main flow */}
+      {previewState && (
+        <StatePreviewPanel
+          abbr={previewState}
+          onClose={() => setPreviewState(null)}
+          onTrack={handleToggleTracked}
+          isTracked={tracked.has(previewState)}
+          rates={stateRates}
+          solarData={solarData}
+        />
+      )}
     </div>
   );
 }
