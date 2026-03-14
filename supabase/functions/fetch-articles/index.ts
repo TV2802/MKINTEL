@@ -154,6 +154,36 @@ function isRelevant(title: string, summary: string): boolean {
 }
 
 // ─────────────────────────────────────────
+// HTML STRIPPING — robust multi-pass
+// ─────────────────────────────────────────
+function stripHtml(raw: string): string {
+  return raw
+    // Remove CDATA wrappers
+    .replace(/<!\[CDATA\[|\]\]>/g, "")
+    // Remove all HTML tags (including self-closing, multi-line)
+    .replace(/<[^>]*>/gs, "")
+    // Decode common HTML entities
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8220;/g, '"')
+    .replace(/&#8221;/g, '"')
+    .replace(/&#8211;/g, "–")
+    .replace(/&#8212;/g, "—")
+    // Catch remaining numeric/named entities
+    .replace(/&#\d+;/g, " ")
+    .replace(/&[a-zA-Z]+;/g, " ")
+    // Collapse whitespace
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// ─────────────────────────────────────────
 // RSS PARSING
 // ─────────────────────────────────────────
 async function fetchFeed(url: string, sourceName: string) {
@@ -171,10 +201,10 @@ async function fetchFeed(url: string, sourceName: string) {
   const articles = [];
 
   for (const item of items) {
-    const title   = item.querySelector("title")?.textContent?.trim() || "";
+    const title   = stripHtml(item.querySelector("title")?.textContent?.trim() || "");
     const link    = item.querySelector("link")?.textContent?.trim() || "";
-    const summary = item.querySelector("description")?.textContent
-      ?.replace(/<[^>]*>/g, "").replace(/&[^;]+;/g, " ").trim() || "";
+    const rawDesc = item.querySelector("description")?.textContent || "";
+    const summary = stripHtml(rawDesc);
     const pubDate = item.querySelector("pubDate")?.textContent?.trim() || "";
     const image   = item.querySelector("enclosure")?.getAttribute("url") ||
                     item.querySelector("image url")?.textContent?.trim() || null;
@@ -272,25 +302,44 @@ Deno.serve(async () => {
 
     const existingUrls = new Set((recentArticles || []).map((a: any) => a.source_url));
 
+    // Also load recent titles for same-issue title dedup
+    const { data: issueTitles } = await supabase
+      .from("articles")
+      .select("title")
+      .eq("issue_id", issue.id);
+    const existingTitles = new Set((issueTitles || []).map((a: any) => a.title.toLowerCase().trim()));
+
     // ── 4. Fetch all feeds ────────────────────────────────────
     const allArticles = [];
 
-    for (const source of CONFIG.SOURCES) {
-      try {
-        const articles = await fetchFeed(source.url, source.name);
-        allArticles.push(...articles);
-        fetched += articles.length;
-      } catch (err: any) {
-        errors.push(`${source.name}: ${err.message}`);
+    const feedResults = await Promise.allSettled(
+      CONFIG.SOURCES.map(source => fetchFeed(source.url, source.name))
+    );
+
+    for (let i = 0; i < feedResults.length; i++) {
+      const result = feedResults[i];
+      if (result.status === "fulfilled") {
+        allArticles.push(...result.value);
+        fetched += result.value.length;
+      } else {
+        errors.push(`Error fetching ${CONFIG.SOURCES[i].url}: ${result.reason}`);
       }
     }
 
-    // ── 5. Filter, score, detect states ──────────────────────
+    // ── 5. Filter, score, detect states, dedup by title ──────
     const toInsert = [];
+    const seenTitles = new Set(existingTitles);
 
     for (const article of allArticles) {
-      // Skip duplicates
+      // Skip URL duplicates
       if (existingUrls.has(article.source_url)) continue;
+
+      // Skip title duplicates within same issue
+      const titleKey = article.title.toLowerCase().trim();
+      if (seenTitles.has(titleKey)) {
+        rejected++;
+        continue;
+      }
 
       // Relevance gate
       if (!isRelevant(article.title, article.summary)) {
@@ -305,7 +354,7 @@ Deno.serve(async () => {
         continue;
       }
 
-      // Detect states — the smart part
+      // Detect states
       const states = keywords.length > 0
         ? detectStates(
             article.title,
@@ -315,14 +364,18 @@ Deno.serve(async () => {
           )
         : [];
 
-      // Derive topic from source + keywords
+      // Derive topic — must match topic_category enum values
       const text = `${article.title} ${article.summary}`.toLowerCase();
-      let topic = "Industry News";
-      if (text.includes("storage") || text.includes("bess") || text.includes("battery")) topic = "Energy Storage";
-      else if (text.includes("policy") || text.includes("regulation") || text.includes("cpuc") || text.includes("ferc")) topic = "Policy & Regulation";
-      else if (text.includes("finance") || text.includes("funding") || text.includes("investment") || text.includes("itc")) topic = "Finance & Incentives";
-      else if (text.includes("solar")) topic = "Solar";
-      else if (text.includes("grid") || text.includes("utility") || text.includes("interconnection")) topic = "Grid & Utilities";
+      let topic: string = "solar";
+      if (text.includes("storage") || text.includes("bess") || text.includes("battery")) topic = "bess_storage";
+      else if (text.includes("policy") || text.includes("regulation") || text.includes("cpuc") || text.includes("ferc") || text.includes("incentive") || text.includes("rebate")) topic = "policy_incentives";
+      else if (text.includes("multifamily") || text.includes("affordable housing") || text.includes("low-income")) topic = "multifamily_nexus";
+      else if (text.includes("code") || text.includes("compliance") || text.includes("building standard")) topic = "code_compliance";
+      else if (text.includes("pricing") || text.includes("rate") || text.includes("tariff") || text.includes("lcoe")) topic = "market_pricing";
+      else if (text.includes("project") || text.includes("install") || text.includes("deploy") || text.includes("commission")) topic = "project_wins";
+      else if (text.includes("equipment") || text.includes("inverter") || text.includes("module") || text.includes("panel")) topic = "technology_equipment";
+      else if (text.includes("innovation") || text.includes("breakthrough") || text.includes("startup")) topic = "innovation_spotlight";
+      else if (text.includes("solar")) topic = "solar";
 
       toInsert.push({
         issue_id: issue.id,
@@ -334,11 +387,12 @@ Deno.serve(async () => {
         topic,
         published_at: article.published_at,
         relevance_score,
-        states,           // ← new field: string[]
+        states,
         is_featured: relevance_score >= 80,
       });
 
       existingUrls.add(article.source_url);
+      seenTitles.add(titleKey);
     }
 
     // Sort by relevance, cap at MAX_ARTICLES
@@ -394,6 +448,20 @@ Deno.serve(async () => {
       }).catch(() => {});
     }
 
+    // Build per-state tag counts
+    const stateCounts: Record<string, number> = {};
+    for (const a of finalArticles) {
+      for (const s of a.states) {
+        stateCounts[s] = (stateCounts[s] || 0) + 1;
+      }
+    }
+
+    // Build per-topic counts
+    const topicCounts: Record<string, number> = {};
+    for (const a of finalArticles) {
+      topicCounts[a.topic] = (topicCounts[a.topic] || 0) + 1;
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -402,6 +470,8 @@ Deno.serve(async () => {
         published,
         rejected,
         states_detected: finalArticles.filter(a => a.states.length > 0).length,
+        state_counts: stateCounts,
+        sections: topicCounts,
         errors,
       }),
       { headers: { "Content-Type": "application/json" } }
