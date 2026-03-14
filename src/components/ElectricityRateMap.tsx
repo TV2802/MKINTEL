@@ -337,11 +337,10 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
               const stateCentroids: Record<string, [number, number]> = {};
               for (const geo of geographies) {
                 const abbr = FIPS_TO_ABBR[geo.id];
-                if (abbr && tracked.has(abbr)) {
-                  const centroid = geoCentroid(geo);
-                  const offset = STATE_CENTROID_OFFSETS[abbr] || [0, 0];
-                  stateCentroids[abbr] = [centroid[0] + offset[0], centroid[1] + offset[1]];
-                }
+                if (!abbr) continue;
+                const centroid = geoCentroid(geo);
+                const offset = STATE_CENTROID_OFFSETS[abbr] || [0, 0];
+                stateCentroids[abbr] = [centroid[0] + offset[0], centroid[1] + offset[1]];
               }
 
               return (
