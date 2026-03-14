@@ -361,6 +361,13 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
                     const strokeColor = isTracked ? "#f59e0b" : "#ffffff30";
                     const strokeW = isTracked ? 2 : 2;
 
+                    // Compute centroid for untracked hover "+" indicator
+                    const centroid = geoCentroid(geo);
+                    const offset = STATE_CENTROID_OFFSETS[abbr] || [0, 0];
+                    if (!isTracked) {
+                      stateCentroids[abbr] = [centroid[0] + offset[0], centroid[1] + offset[1]];
+                    }
+
                     return (
                       <Geography
                         key={geo.rsmKey}
@@ -381,11 +388,12 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
                             acAnnual: solar?.ac_annual != null ? solar.ac_annual / 10 : null,
                             opportunityIndex: opp,
                           });
+                          if (!isTracked) setHoveredState(abbr);
                         }}
                         onMouseMove={(evt) => {
                           setTooltip((prev) => prev ? { ...prev, x: evt.clientX, y: evt.clientY } : null);
                         }}
-                        onMouseLeave={() => setTooltip(null)}
+                        onMouseLeave={() => { setTooltip(null); setHoveredState(null); }}
                         onClick={(evt) => handleMapClick(abbr, evt as unknown as React.MouseEvent)}
                       />
                     );
