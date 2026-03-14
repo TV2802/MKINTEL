@@ -258,6 +258,34 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
     return { isoLabelsToShow: isoLabels };
   }, [tracked]);
 
+  // Auto-dismiss popup after 4 seconds
+  useEffect(() => {
+    if (!popup) return;
+    const timer = setTimeout(() => setPopup(null), 4000);
+    return () => clearTimeout(timer);
+  }, [popup]);
+
+  // Two-click handler
+  const handleMapClick = useCallback(
+    (abbr: string, evt: React.MouseEvent) => {
+      if (tracked.has(abbr)) {
+        // Second click on tracked state → open state guide
+        setPopup(null);
+        onStateClick(abbr);
+      } else {
+        // First click → track + show popup
+        onToggleTracked(abbr);
+        setPopup({
+          abbr,
+          x: evt.clientX,
+          y: evt.clientY,
+          price: rateMap[abbr]?.price ?? null,
+        });
+      }
+    },
+    [tracked, onToggleTracked, onStateClick, rateMap]
+  );
+
   const isLoading = loading || ((layers.solar || layers.index) && solarLoading);
 
   if (isLoading) {
