@@ -331,8 +331,15 @@ Deno.serve(async () => {
     const seenTitles = new Set(existingTitles);
 
     for (const article of allArticles) {
-      // Skip duplicates
+      // Skip URL duplicates
       if (existingUrls.has(article.source_url)) continue;
+
+      // Skip title duplicates within same issue
+      const titleKey = article.title.toLowerCase().trim();
+      if (seenTitles.has(titleKey)) {
+        rejected++;
+        continue;
+      }
 
       // Relevance gate
       if (!isRelevant(article.title, article.summary)) {
@@ -347,7 +354,7 @@ Deno.serve(async () => {
         continue;
       }
 
-      // Detect states — the smart part
+      // Detect states
       const states = keywords.length > 0
         ? detectStates(
             article.title,
@@ -357,14 +364,18 @@ Deno.serve(async () => {
           )
         : [];
 
-      // Derive topic from source + keywords
+      // Derive topic — must match topic_category enum values
       const text = `${article.title} ${article.summary}`.toLowerCase();
-      let topic = "Industry News";
-      if (text.includes("storage") || text.includes("bess") || text.includes("battery")) topic = "Energy Storage";
-      else if (text.includes("policy") || text.includes("regulation") || text.includes("cpuc") || text.includes("ferc")) topic = "Policy & Regulation";
-      else if (text.includes("finance") || text.includes("funding") || text.includes("investment") || text.includes("itc")) topic = "Finance & Incentives";
-      else if (text.includes("solar")) topic = "Solar";
-      else if (text.includes("grid") || text.includes("utility") || text.includes("interconnection")) topic = "Grid & Utilities";
+      let topic: string = "solar";
+      if (text.includes("storage") || text.includes("bess") || text.includes("battery")) topic = "bess_storage";
+      else if (text.includes("policy") || text.includes("regulation") || text.includes("cpuc") || text.includes("ferc") || text.includes("incentive") || text.includes("rebate")) topic = "policy_incentives";
+      else if (text.includes("multifamily") || text.includes("affordable housing") || text.includes("low-income")) topic = "multifamily_nexus";
+      else if (text.includes("code") || text.includes("compliance") || text.includes("building standard")) topic = "code_compliance";
+      else if (text.includes("pricing") || text.includes("rate") || text.includes("tariff") || text.includes("lcoe")) topic = "market_pricing";
+      else if (text.includes("project") || text.includes("install") || text.includes("deploy") || text.includes("commission")) topic = "project_wins";
+      else if (text.includes("equipment") || text.includes("inverter") || text.includes("module") || text.includes("panel")) topic = "technology_equipment";
+      else if (text.includes("innovation") || text.includes("breakthrough") || text.includes("startup")) topic = "innovation_spotlight";
+      else if (text.includes("solar")) topic = "solar";
 
       toInsert.push({
         issue_id: issue.id,
@@ -376,11 +387,12 @@ Deno.serve(async () => {
         topic,
         published_at: article.published_at,
         relevance_score,
-        states,           // ← new field: string[]
+        states,
         is_featured: relevance_score >= 80,
       });
 
       existingUrls.add(article.source_url);
+      seenTitles.add(titleKey);
     }
 
     // Sort by relevance, cap at MAX_ARTICLES
