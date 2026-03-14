@@ -183,7 +183,10 @@ export default function CAHub() {
         .contains("states", ["CA"])
         .order("published_at", { ascending: false })
         .limit(30);
-      if (articleTopic !== "all") query = query.eq("topic", articleTopic);
+      if (articleTopic !== "all") {
+        const enumVal = topicDisplayToEnum[articleTopic];
+        if (enumVal) query = query.eq("topic", enumVal as any);
+      }
       const { data } = await query;
       setArticles(data || []);
       setArticlesLoading(false);
@@ -191,7 +194,14 @@ export default function CAHub() {
     fetchArticles();
   }, [tab, articleTopic]);
 
-  const topics = ["all", "Solar", "Energy Storage", "Policy & Regulation", "Finance & Incentives", "Grid & Utilities"];
+  const topicDisplayToEnum: Record<string, string> = {
+    "Solar": "solar",
+    "Energy Storage": "bess_storage",
+    "Policy & Regulation": "policy_incentives",
+    "Finance & Incentives": "market_pricing",
+    "Grid & Utilities": "technology_equipment",
+  };
+  const topics = ["all", ...Object.keys(topicDisplayToEnum)];
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">

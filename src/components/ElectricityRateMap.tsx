@@ -167,6 +167,7 @@ const SUBTITLES: Record<LayerKey, string> = {
 
 export default function ElectricityRateMap({ rates, loading, tracked, onToggleTracked, onStateClick, layers, onToggleLayer, solarData, solarLoading }: Props) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
+  const [popup, setPopup] = useState<{ abbr: string; x: number; y: number; price: number | null } | null>(null);
   const activeColorMode: LayerKey = layers.index ? "index" : layers.solar ? "solar" : "rates";
 
   const rateMap = useMemo(() => {
@@ -257,6 +258,34 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
     return { isoLabelsToShow: isoLabels };
   }, [tracked]);
 
+  // Auto-dismiss popup after 4 seconds
+  useEffect(() => {
+    if (!popup) return;
+    const timer = setTimeout(() => setPopup(null), 4000);
+    return () => clearTimeout(timer);
+  }, [popup]);
+
+  // Two-click handler
+  const handleMapClick = useCallback(
+    (abbr: string, evt: React.MouseEvent) => {
+      if (tracked.has(abbr)) {
+        // Second click on tracked state → open state guide
+        setPopup(null);
+        onStateClick(abbr);
+      } else {
+        // First click → track + show popup
+        onToggleTracked(abbr);
+        setPopup({
+          abbr,
+          x: evt.clientX,
+          y: evt.clientY,
+          price: rateMap[abbr]?.price ?? null,
+        });
+      }
+    },
+    [tracked, onToggleTracked, onStateClick, rateMap]
+  );
+
   const isLoading = loading || ((layers.solar || layers.index) && solarLoading);
 
   if (isLoading) {
@@ -294,6 +323,14 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
           height={500}
           style={{ width: "100%", height: "auto" }}
         >
+          {/* Amber glow filter for tracked states */}
+          <defs>
+            <filter id="amber-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#f59e0b" floodOpacity="0.6">
+                <animate attributeName="floodOpacity" values="0.3;0.7;0.3" dur="2s" repeatCount="indefinite" />
+              </feDropShadow>
+            </filter>
+          </defs>
           <Geographies geography={GEO_URL}>
             {({ geographies }) => {
               const stateCentroids: Record<string, [number, number]> = {};
@@ -332,7 +369,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
                         stroke={strokeColor}
                         strokeWidth={strokeW}
                         style={{
-                          default: { outline: "none" },
+                          default: { outline: "none", filter: isTracked ? "url(#amber-glow)" : "none" },
                           hover: { outline: "none", fill: fillColor, filter: "brightness(1.3)", cursor: "pointer" },
                           pressed: { outline: "none" },
                         }}
@@ -349,7 +386,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
                           setTooltip((prev) => prev ? { ...prev, x: evt.clientX, y: evt.clientY } : null);
                         }}
                         onMouseLeave={() => setTooltip(null)}
-                        onClick={() => onStateClick(abbr)}
+                        onClick={(evt) => handleMapClick(abbr, evt as unknown as React.MouseEvent)}
                       />
                     );
                   })}
@@ -472,6 +509,30 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
             )}
           </div>
           {layers.rates && <p className="mt-1 font-mono text-[10px] text-zinc-600">{tooltip.period}</p>}
+        </div>
+      )}
+
+      {/* First-click popup */}
+      {popup && (
+        <div
+          className="fixed z-50 animate-scale-in rounded-lg border border-amber-500/30 bg-zinc-900/95 px-3 py-2 shadow-xl backdrop-blur-sm"
+          style={{ left: popup.x + 14, top: popup.y - 60 }}
+        >
+          <p className="font-mono text-xs text-zinc-300">
+            ⚡ {ABBR_TO_NAME[popup.abbr] || popup.abbr}:{" "}
+            <span className="font-bold text-amber-400">
+              {popup.price != null ? `${popup.price.toFixed(2)} ¢/kWh` : "N/A"}
+            </span>
+          </p>
+          <button
+            className="mt-1.5 w-full rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-400 transition-colors hover:bg-amber-500/20"
+            onClick={() => {
+              setPopup(null);
+              onStateClick(popup.abbr);
+            }}
+          >
+            View Guide →
+          </button>
         </div>
       )}
 
