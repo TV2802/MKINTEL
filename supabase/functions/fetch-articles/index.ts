@@ -154,6 +154,36 @@ function isRelevant(title: string, summary: string): boolean {
 }
 
 // ─────────────────────────────────────────
+// HTML STRIPPING — robust multi-pass
+// ─────────────────────────────────────────
+function stripHtml(raw: string): string {
+  return raw
+    // Remove CDATA wrappers
+    .replace(/<!\[CDATA\[|\]\]>/g, "")
+    // Remove all HTML tags (including self-closing, multi-line)
+    .replace(/<[^>]*>/gs, "")
+    // Decode common HTML entities
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8220;/g, '"')
+    .replace(/&#8221;/g, '"')
+    .replace(/&#8211;/g, "–")
+    .replace(/&#8212;/g, "—")
+    // Catch remaining numeric/named entities
+    .replace(/&#\d+;/g, " ")
+    .replace(/&[a-zA-Z]+;/g, " ")
+    // Collapse whitespace
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// ─────────────────────────────────────────
 // RSS PARSING
 // ─────────────────────────────────────────
 async function fetchFeed(url: string, sourceName: string) {
@@ -171,10 +201,10 @@ async function fetchFeed(url: string, sourceName: string) {
   const articles = [];
 
   for (const item of items) {
-    const title   = item.querySelector("title")?.textContent?.trim() || "";
+    const title   = stripHtml(item.querySelector("title")?.textContent?.trim() || "");
     const link    = item.querySelector("link")?.textContent?.trim() || "";
-    const summary = item.querySelector("description")?.textContent
-      ?.replace(/<[^>]*>/g, "").replace(/&[^;]+;/g, " ").trim() || "";
+    const rawDesc = item.querySelector("description")?.textContent || "";
+    const summary = stripHtml(rawDesc);
     const pubDate = item.querySelector("pubDate")?.textContent?.trim() || "";
     const image   = item.querySelector("enclosure")?.getAttribute("url") ||
                     item.querySelector("image url")?.textContent?.trim() || null;
