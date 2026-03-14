@@ -361,7 +361,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
                         stroke={strokeColor}
                         strokeWidth={strokeW}
                         style={{
-                          default: { outline: "none" },
+                          default: { outline: "none", filter: isTracked ? "url(#amber-glow)" : "none" },
                           hover: { outline: "none", fill: fillColor, filter: "brightness(1.3)", cursor: "pointer" },
                           pressed: { outline: "none" },
                         }}
@@ -378,7 +378,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
                           setTooltip((prev) => prev ? { ...prev, x: evt.clientX, y: evt.clientY } : null);
                         }}
                         onMouseLeave={() => setTooltip(null)}
-                        onClick={() => onStateClick(abbr)}
+                        onClick={(evt) => handleMapClick(abbr, evt as unknown as React.MouseEvent)}
                       />
                     );
                   })}
