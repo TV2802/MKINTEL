@@ -140,6 +140,7 @@ interface Props {
   loading: boolean;
   tracked: Set<string>;
   onToggleTracked: (abbr: string) => void;
+  onStateClick: (abbr: string) => void;
   layers: Layers;
   onToggleLayer: (key: LayerKey) => void;
   solarData: SolarData[];
@@ -159,12 +160,12 @@ const LAYER_PILLS: { key: LayerKey; label: string }[] = [
 ];
 
 const SUBTITLES: Record<LayerKey, string> = {
-  rates: "Brightness = rate intensity · Click any state to track/untrack",
-  solar: "Brightness = avg yield per 1 kW (kWh/yr) · Click any state to track/untrack",
-  index: "Green = highest opportunity (high rate × high solar) · Click any state to track/untrack",
+  rates: "Brightness = rate intensity · Click any state to open its market guide",
+  solar: "Brightness = avg yield per 1 kW (kWh/yr) · Click any state to open its market guide",
+  index: "Green = highest opportunity (high rate × high solar) · Click any state to open its market guide",
 };
 
-export default function ElectricityRateMap({ rates, loading, tracked, onToggleTracked, layers, onToggleLayer, solarData, solarLoading }: Props) {
+export default function ElectricityRateMap({ rates, loading, tracked, onToggleTracked, onStateClick, layers, onToggleLayer, solarData, solarLoading }: Props) {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const activeColorMode: LayerKey = layers.index ? "index" : layers.solar ? "solar" : "rates";
 
@@ -348,7 +349,7 @@ export default function ElectricityRateMap({ rates, loading, tracked, onToggleTr
                           setTooltip((prev) => prev ? { ...prev, x: evt.clientX, y: evt.clientY } : null);
                         }}
                         onMouseLeave={() => setTooltip(null)}
-                        onClick={() => onToggleTracked(abbr)}
+                        onClick={() => onStateClick(abbr)}
                       />
                     );
                   })}
