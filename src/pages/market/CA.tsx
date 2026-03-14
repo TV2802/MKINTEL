@@ -183,7 +183,10 @@ export default function CAHub() {
         .contains("states", ["CA"])
         .order("published_at", { ascending: false })
         .limit(30);
-      if (articleTopic !== "all") query = query.eq("topic", articleTopic);
+      if (articleTopic !== "all") {
+        const enumVal = topicDisplayToEnum[articleTopic];
+        if (enumVal) query = query.eq("topic", enumVal as any);
+      }
       const { data } = await query;
       setArticles(data || []);
       setArticlesLoading(false);
