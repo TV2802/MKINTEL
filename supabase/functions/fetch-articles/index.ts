@@ -448,6 +448,20 @@ Deno.serve(async () => {
       }).catch(() => {});
     }
 
+    // Build per-state tag counts
+    const stateCounts: Record<string, number> = {};
+    for (const a of finalArticles) {
+      for (const s of a.states) {
+        stateCounts[s] = (stateCounts[s] || 0) + 1;
+      }
+    }
+
+    // Build per-topic counts
+    const topicCounts: Record<string, number> = {};
+    for (const a of finalArticles) {
+      topicCounts[a.topic] = (topicCounts[a.topic] || 0) + 1;
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -456,6 +470,8 @@ Deno.serve(async () => {
         published,
         rejected,
         states_detected: finalArticles.filter(a => a.states.length > 0).length,
+        state_counts: stateCounts,
+        sections: topicCounts,
         errors,
       }),
       { headers: { "Content-Type": "application/json" } }
