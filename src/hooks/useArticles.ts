@@ -85,6 +85,7 @@ export function useArticle(articleId: string | undefined) {
     },
     enabled: !!articleId,
   });
+}
 
 export function useAllArticles() {
   return useQuery({
