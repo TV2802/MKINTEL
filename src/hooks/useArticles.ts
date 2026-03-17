@@ -85,4 +85,17 @@ export function useArticle(articleId: string | undefined) {
     },
     enabled: !!articleId,
   });
+
+export function useAllArticles() {
+  return useQuery({
+    queryKey: ["all-articles"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("articles")
+        .select("*")
+        .order("published_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
 }
