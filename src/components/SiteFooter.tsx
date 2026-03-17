@@ -33,7 +33,7 @@ export function SiteFooter() {
           </div>
         </div>
         <div className="mt-8 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} ENERGYPULSE. Powered by Lovable.
+          © {new Date().getFullYear()} PULSE. Powered by Lovable.
         </div>
       </div>
     </footer>
