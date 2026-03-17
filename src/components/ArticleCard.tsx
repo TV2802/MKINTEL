@@ -1,13 +1,10 @@
-import { TOPIC_CONFIG } from "@/lib/topics";
 import { FeedbackButtons } from "./FeedbackButtons";
 import { BookmarkButton } from "./BookmarkButton";
 import { Clock } from "lucide-react";
 import type { Article } from "@/hooks/useArticles";
-import type { Database } from "@/integrations/supabase/types";
 import { format } from "date-fns";
 import { stripHtml } from "@/lib/utils";
-
-type TopicCategory = Database["public"]["Enums"]["topic_category"];
+import { getTagToken } from "@/lib/tags";
 
 interface ArticleCardProps {
   article: Article;
@@ -22,51 +19,53 @@ function estimateReadTime(text: string | null): string {
   return `${mins} min`;
 }
 
-function getEnergyToken(topic: string): string {
-  const map: Record<string, string> = {
-    policy_incentives: "policy",
-    technology_equipment: "technology",
-    multifamily_nexus: "multifamily",
-    market_pricing: "market",
-    code_compliance: "compliance",
-    bess_storage: "bess",
-    innovation_spotlight: "innovation",
-    project_wins: "wins",
-    weekly_digest: "digest",
-    solar: "policy",
-    multifamily: "multifamily",
-    battery: "bess",
-    built_environment: "compliance",
-    new_innovations: "innovation",
-    company_success: "wins",
-  };
-  return map[topic] ?? "policy";
+function TagPills({ tags }: { tags: string[] }) {
+  if (!tags || tags.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {tags.slice(0, 5).map((tag) => {
+        const token = getTagToken(tag);
+        return (
+          <span
+            key={tag}
+            className="rounded-full px-2 py-0.5 font-mono text-[9px] font-medium tracking-wider"
+            style={{
+              backgroundColor: `hsl(var(--energy-${token}) / 0.15)`,
+              color: `hsl(var(--energy-${token}))`,
+            }}
+          >
+            {tag}
+          </span>
+        );
+      })}
+      {tags.length > 5 && (
+        <span className="rounded-full px-2 py-0.5 font-mono text-[9px] text-muted-foreground">
+          +{tags.length - 5}
+        </span>
+      )}
+    </div>
+  );
 }
 
 export function ArticleCard({ article, featured = false, onSelect }: ArticleCardProps) {
-  const config = TOPIC_CONFIG[article.topic as TopicCategory];
   const dateStr = article.published_at
     ? format(new Date(article.published_at), "MMM d, yyyy")
     : "";
   const readTime = estimateReadTime(stripHtml(article.summary));
   const handleClick = () => onSelect?.(article);
-  const token = getEnergyToken(article.topic);
+  const articleTags: string[] = (article as any).tags ?? [];
+  const primaryToken = articleTags.length > 0 ? getTagToken(articleTags[0]) : "policy";
 
   if (featured) {
     return (
       <article
         onClick={handleClick}
         className="group relative cursor-pointer overflow-hidden rounded-md border-l-[5px] bg-card transition-all duration-300 hover:shadow-[0_12px_40px_-12px_hsl(var(--primary)/0.3)] hover:-translate-y-0.5"
-        style={{ borderLeftColor: `hsl(var(--energy-${token}))` }}
+        style={{ borderLeftColor: `hsl(var(--energy-${primaryToken}))` }}
       >
         <div className="p-6 md:p-8">
           <div className="mb-4 flex items-start justify-between">
-            <span
-              className="font-mono text-[11px] font-medium uppercase tracking-[0.2em]"
-              style={{ color: `hsl(var(--energy-${token}))` }}
-            >
-              {config.emoji} {config.label}
-            </span>
+            <TagPills tags={articleTags} />
             <BookmarkButton articleId={article.id} />
           </div>
 
@@ -99,23 +98,17 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
         </div>
       </article>
     );
-
   }
 
   return (
     <article
       onClick={handleClick}
       className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-md border-l-[5px] bg-card transition-all duration-300 hover:shadow-[0_12px_40px_-12px_hsl(var(--primary)/0.2)] hover:-translate-y-0.5"
-      style={{ borderLeftColor: `hsl(var(--energy-${token}))` }}
+      style={{ borderLeftColor: `hsl(var(--energy-${primaryToken}))` }}
     >
       <div className="flex flex-1 flex-col p-5">
         <div className="mb-3 flex items-start justify-between">
-          <span
-            className="font-mono text-[10px] font-medium uppercase tracking-[0.2em]"
-            style={{ color: `hsl(var(--energy-${token}))` }}
-          >
-            {config.label}
-          </span>
+          <TagPills tags={articleTags} />
           <BookmarkButton articleId={article.id} />
         </div>
 
@@ -149,4 +142,3 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
     </article>
   );
 }
-

@@ -1,19 +1,16 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { HeroBanner } from "@/components/HeroBanner";
 import { ArticleCard } from "@/components/ArticleCard";
 import { ArticleDrawer } from "@/components/ArticleDrawer";
-import { SectionNav } from "@/components/SectionNav";
+import { TagFilterBar } from "@/components/TagFilterBar";
 import { useLatestIssue, useIssueArticles, useIssue, useAllIssues } from "@/hooks/useArticles";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Zap } from "lucide-react";
 import type { Article } from "@/hooks/useArticles";
-import type { Database } from "@/integrations/supabase/types";
-
-type TopicCategory = Database["public"]["Enums"]["topic_category"];
 
 const Index = () => {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  const [activeFilter, setActiveFilter] = useState<TopicCategory | null>(null);
+  const [activeTags, setActiveTags] = useState<string[]>([]);
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
 
   const { data: latestIssue, isLoading: latestLoading } = useLatestIssue();
@@ -21,18 +18,40 @@ const Index = () => {
   const { data: manualIssue } = useIssue(selectedIssueId ?? undefined);
 
   const issue = selectedIssueId ? manualIssue : latestIssue;
-  const issueLoading = latestLoading;
-
   const { data: articles, isLoading: articlesLoading } = useIssueArticles(issue?.id);
-  const isLoading = issueLoading || articlesLoading;
+  const isLoading = latestLoading || articlesLoading;
 
-  const sortedArticles = [...(articles ?? [])]
-    .filter((a) => a.topic !== "weekly_digest")
-    .sort((a, b) => (b.relevance_score ?? 0) - (a.relevance_score ?? 0));
+  const sortedArticles = useMemo(() =>
+    [...(articles ?? [])]
+      .filter((a) => a.topic !== "weekly_digest")
+      .sort((a, b) => (b.relevance_score ?? 0) - (a.relevance_score ?? 0)),
+    [articles]
+  );
 
-  const filteredArticles = activeFilter
-    ? sortedArticles.filter((a) => a.topic === activeFilter)
+  // Collect all available tags from current articles
+  const availableTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    for (const a of sortedArticles) {
+      const tags: string[] = (a as any).tags ?? [];
+      tags.forEach(t => tagSet.add(t));
+    }
+    return [...tagSet];
+  }, [sortedArticles]);
+
+  const filteredArticles = activeTags.length > 0
+    ? sortedArticles.filter((a) => {
+        const tags: string[] = (a as any).tags ?? [];
+        return activeTags.some(t => tags.includes(t));
+      })
     : sortedArticles;
+
+  const handleTagToggle = (tag: string) => {
+    setActiveTags(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
 
   return (
     <>
@@ -41,7 +60,12 @@ const Index = () => {
         allIssues={allIssues ?? []}
         onIssueChange={setSelectedIssueId}
       />
-      <SectionNav activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+      <TagFilterBar
+        activeTags={activeTags}
+        onTagToggle={handleTagToggle}
+        onClear={() => setActiveTags([])}
+        availableTags={availableTags}
+      />
 
       <main className="container mx-auto px-4 py-10">
         {isLoading ? (
@@ -61,7 +85,7 @@ const Index = () => {
           </div>
         ) : filteredArticles.length === 0 ? (
           <p className="py-16 text-center text-muted-foreground">
-            No articles in this section for the current issue.
+            No articles match the selected tags.
           </p>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
