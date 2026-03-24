@@ -28,6 +28,7 @@ const AppContent = () => {
         <div className="flex-1">
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/articles" element={<Articles />} />
             <Route path="/market" element={<MarketIntelligence />} />
             <Route path="/market/CA" element={<CAHub />} />
             <Route path="*" element={<NotFound />} />
