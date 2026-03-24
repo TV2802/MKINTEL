@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SavedDrawer } from "@/components/SavedDrawer";
 import { ArticleDrawer } from "@/components/ArticleDrawer";
 import Index from "./pages/Index";
+import Articles from "./pages/Articles";
 import MarketIntelligence from "./pages/MarketIntelligence";
 import CAHub from "./pages/market/CA";
 import NotFound from "./pages/NotFound";

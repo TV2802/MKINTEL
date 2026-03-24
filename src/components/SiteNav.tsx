@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Zap, Activity, Bookmark } from "lucide-react";
+import { Zap, Activity, Newspaper, Bookmark } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface SiteNavProps {
@@ -17,6 +17,15 @@ export function SiteNav({ onOpenSaved }: SiteNavProps) {
           <span className="font-display text-base font-bold tracking-tight">PULSE</span>
         </Link>
         <div className="flex items-center gap-5">
+          <Link
+            to="/articles"
+            className={`flex items-center gap-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.15em] transition-colors hover:text-primary ${
+              pathname === "/articles" ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <Newspaper className="h-3.5 w-3.5" />
+            Articles
+          </Link>
           <Link
             to="/market"
             className={`flex items-center gap-1.5 font-mono text-[11px] font-medium uppercase tracking-[0.15em] transition-colors hover:text-primary ${
