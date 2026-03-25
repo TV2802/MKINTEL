@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("PVWatts edge function error:", error);
     return new Response(
-      JSON.stringify({ data: [], error: error.message }),
+      JSON.stringify({ data: [], error: (error as Error).message }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

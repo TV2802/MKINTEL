@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("EIA fetch error:", error);
-    return new Response(JSON.stringify({ rates: [], fetched_at: null, error: error.message }), {
+    return new Response(JSON.stringify({ rates: [], fetched_at: null, error: (error as Error).message }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
