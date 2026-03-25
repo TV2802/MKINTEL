@@ -421,15 +421,18 @@ Deno.serve(async () => {
       { headers: { "Content-Type": "application/json" } }
     );
 
-  } catch (err: any) {
-    await supabase.from("fetch_logs").insert({
-      run_at: runAt,
-      articles_fetched: fetched,
-      articles_published: 0,
-      articles_rejected: rejected,
-      status: "error",
-      errors: [err.message],
-    }).catch(() => {});
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    try {
+      await supabase.from("fetch_logs").insert({
+        run_at: runAt,
+        articles_fetched: fetched,
+        articles_published: 0,
+        articles_rejected: rejected,
+        status: "error",
+        errors: [message],
+      });
+    } catch (_) { /* ignore */ }
 
     return new Response(
       JSON.stringify({ success: false, error: err.message }),
