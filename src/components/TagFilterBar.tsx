@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronDown, MapPin, Check } from "lucide-react";
+import { ChevronDown, MapPin, Check, X } from "lucide-react";
 
 const FILTER_GROUPS = [
   { label: "All", tags: [] },
@@ -46,6 +46,17 @@ interface TagFilterBarProps {
   onStateToggle: (state: string) => void;
 }
 
+function StateChip({ abbr, onRemove }: { abbr: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-0.5 font-mono text-[10px] font-medium text-primary">
+      {abbr}
+      <button onClick={onRemove} className="ml-0.5 rounded-full p-0.5 hover:bg-primary/20 transition-colors">
+        <X className="h-2.5 w-2.5" />
+      </button>
+    </span>
+  );
+}
+
 export function TagFilterBar({ activeTags, onTagToggle, onClear, activeStates, onStateToggle }: TagFilterBarProps) {
   const [statesOpen, setStatesOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -69,7 +80,7 @@ export function TagFilterBar({ activeTags, onTagToggle, onClear, activeStates, o
   return (
     <div className="sticky top-14 z-40 border-b border-border bg-background/95 backdrop-blur-md">
       <div className="container mx-auto px-4">
-        <div className="flex items-center gap-2 overflow-x-auto py-3 scrollbar-hide">
+        <div className="flex items-center gap-2 py-3 scrollbar-hide">
           {FILTER_GROUPS.map((group) => {
             const isAll = group.tags.length === 0;
             const isActive = isAll
@@ -83,7 +94,6 @@ export function TagFilterBar({ activeTags, onTagToggle, onClear, activeStates, o
                   if (isAll) {
                     onClear();
                   } else {
-                    // Set activeTags to exactly this group's tags
                     onClear();
                     group.tags.forEach((t) => onTagToggle(t));
                   }
@@ -111,51 +121,125 @@ export function TagFilterBar({ activeTags, onTagToggle, onClear, activeStates, o
             >
               <MapPin className="h-3 w-3" />
               {activeStates.length > 0 ? `States (${activeStates.length})` : "States"}
-              <ChevronDown className={`h-3 w-3 transition-transform ${statesOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${statesOpen ? "rotate-180" : ""}`} />
             </button>
 
             {statesOpen && (
-              <div className="absolute left-0 top-full mt-2 w-56 rounded-lg border border-border bg-popover shadow-xl z-50 max-h-80 overflow-y-auto">
-                {/* My Markets */}
-                <div className="px-3 py-2 border-b border-border">
-                  <span className="font-mono text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">
-                    My Markets
-                  </span>
-                </div>
-                {MY_MARKETS.map((st) => (
-                  <button
-                    key={st}
-                    onClick={() => onStateToggle(st)}
-                    className="flex w-full items-center justify-between px-3 py-2 text-sm text-popover-foreground hover:bg-muted/50 transition-colors"
-                  >
-                    <span className="font-mono text-xs">
-                      {st} — {STATE_NAMES[st]}
-                    </span>
-                    {activeStates.includes(st) && <Check className="h-3.5 w-3.5 text-primary" />}
-                  </button>
-                ))}
+              <>
+                {/* Backdrop overlay */}
+                <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px]" onClick={() => setStatesOpen(false)} />
 
-                {/* All Other States */}
-                <div className="px-3 py-2 border-t border-b border-border">
-                  <span className="font-mono text-[9px] font-semibold tracking-widest text-muted-foreground uppercase">
-                    All States
-                  </span>
-                </div>
-                {otherStates.map((st) => (
-                  <button
-                    key={st}
-                    onClick={() => onStateToggle(st)}
-                    className="flex w-full items-center justify-between px-3 py-2 text-sm text-popover-foreground hover:bg-muted/50 transition-colors"
-                  >
-                    <span className="font-mono text-xs">
-                      {st} — {STATE_NAMES[st]}
+                {/* Dropdown panel */}
+                <div className="absolute right-0 top-full mt-3 z-50 w-[340px] rounded-xl border border-border bg-popover/95 backdrop-blur-xl shadow-2xl shadow-black/20 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                    <span className="font-mono text-xs font-semibold tracking-wide text-foreground">
+                      Filter by State
                     </span>
-                    {activeStates.includes(st) && <Check className="h-3.5 w-3.5 text-primary" />}
-                  </button>
-                ))}
-              </div>
+                    {activeStates.length > 0 && (
+                      <button
+                        onClick={() => activeStates.forEach((s) => onStateToggle(s))}
+                        className="font-mono text-[10px] text-primary hover:text-primary/80 transition-colors"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Selected chips */}
+                  {activeStates.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-b border-border/50 bg-muted/30">
+                      {activeStates.map((st) => (
+                        <StateChip key={st} abbr={st} onRemove={() => onStateToggle(st)} />
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="max-h-[360px] overflow-y-auto overscroll-contain">
+                    {/* My Markets */}
+                    <div className="px-4 py-2 bg-muted/20">
+                      <span className="font-mono text-[9px] font-bold tracking-[0.15em] text-muted-foreground uppercase">
+                        My Markets
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-px bg-border/30">
+                      {MY_MARKETS.map((st) => {
+                        const selected = activeStates.includes(st);
+                        return (
+                          <button
+                            key={st}
+                            onClick={() => onStateToggle(st)}
+                            className={`flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors ${
+                              selected
+                                ? "bg-primary/10 text-foreground"
+                                : "bg-popover text-popover-foreground hover:bg-muted/50"
+                            }`}
+                          >
+                            <div className={`flex h-4 w-4 items-center justify-center rounded border transition-colors ${
+                              selected
+                                ? "border-primary bg-primary"
+                                : "border-muted-foreground/30"
+                            }`}>
+                              {selected && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                            </div>
+                            <span className="font-mono text-xs font-medium">{st}</span>
+                            <span className="text-[10px] text-muted-foreground truncate">{STATE_NAMES[st]}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* All States */}
+                    <div className="px-4 py-2 bg-muted/20 border-t border-border/50">
+                      <span className="font-mono text-[9px] font-bold tracking-[0.15em] text-muted-foreground uppercase">
+                        All States
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-px bg-border/30">
+                      {otherStates.map((st) => {
+                        const selected = activeStates.includes(st);
+                        return (
+                          <button
+                            key={st}
+                            onClick={() => onStateToggle(st)}
+                            className={`flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors ${
+                              selected
+                                ? "bg-primary/10 text-foreground"
+                                : "bg-popover text-popover-foreground hover:bg-muted/50"
+                            }`}
+                          >
+                            <div className={`flex h-4 w-4 items-center justify-center rounded border transition-colors ${
+                              selected
+                                ? "border-primary bg-primary"
+                                : "border-muted-foreground/30"
+                            }`}>
+                              {selected && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                            </div>
+                            <span className="font-mono text-xs font-medium">{st}</span>
+                            <span className="text-[10px] text-muted-foreground truncate">{STATE_NAMES[st]}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
           </div>
+
+          {/* Inline selected state chips on filter bar */}
+          {activeStates.length > 0 && !statesOpen && (
+            <div className="flex items-center gap-1.5 ml-1">
+              {activeStates.slice(0, 3).map((st) => (
+                <StateChip key={st} abbr={st} onRemove={() => onStateToggle(st)} />
+              ))}
+              {activeStates.length > 3 && (
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  +{activeStates.length - 3}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
