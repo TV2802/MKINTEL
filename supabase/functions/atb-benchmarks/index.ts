@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("ATB benchmark error:", error);
     return new Response(
-      JSON.stringify({ metrics: [], error: error.message }),
+      JSON.stringify({ metrics: [], error: (error as Error).message }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
