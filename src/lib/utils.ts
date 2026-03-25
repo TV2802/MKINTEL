@@ -8,9 +8,11 @@ export function cn(...inputs: ClassValue[]) {
 /** Strip HTML tags and decode HTML entities from a string */
 export function stripHtml(html: string | null | undefined): string {
   if (!html) return "";
+  // Remove CDATA wrappers first
+  let cleaned = html.replace(/<!\[CDATA\[|\]\]>/g, "");
   // Use DOMParser to decode entities AND strip tags in one pass
   try {
-    const doc = new DOMParser().parseFromString(html, "text/html");
+    const doc = new DOMParser().parseFromString(cleaned, "text/html");
     return (doc.body.textContent ?? "").replace(/\s+/g, " ").trim();
   } catch {
     // Fallback: decode entities first, then strip tags
