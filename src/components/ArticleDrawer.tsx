@@ -102,11 +102,9 @@ export function ArticleDrawer({ article, open, onClose }: ArticleDrawerProps) {
           </h2>
 
           {/* Summary */}
-          {article.summary && (
-            <div className="mb-6 text-base leading-[1.8] text-foreground/80">
-              <p>{stripHtml(article.summary)}</p>
-            </div>
-          )}
+          <div className="mb-6 text-base leading-[1.8] text-foreground/80">
+            <p>{stripHtml(article.summary) || article.title.slice(0, 150)}</p>
+          </div>
 
           <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-6">
             <FeedbackButtons articleId={article.id} />

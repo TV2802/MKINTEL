@@ -1,0 +1,1 @@
+UPDATE articles SET summary = trim(regexp_replace(regexp_replace(summary, '<[^>]*>', ' ', 'g'), '\s+', ' ', 'g')) WHERE summary LIKE '%<%';

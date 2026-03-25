@@ -73,11 +73,9 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
             {article.title}
           </h2>
 
-          {article.summary && (
-            <p className="mb-6 text-base leading-[1.7] text-muted-foreground line-clamp-4">
-              {stripHtml(article.summary)}
-            </p>
-          )}
+        <p className="mb-6 text-base leading-[1.7] text-muted-foreground line-clamp-4">
+          {stripHtml(article.summary) || article.title.slice(0, 150)}
+        </p>
 
           <div className="flex items-center justify-between border-t border-border/50 pt-4">
             <div className="flex items-center gap-3 font-mono text-[11px] text-muted-foreground">
@@ -116,11 +114,9 @@ export function ArticleCard({ article, featured = false, onSelect }: ArticleCard
           {article.title}
         </h3>
 
-        {article.summary && (
-          <p className="mb-4 text-sm leading-relaxed text-muted-foreground line-clamp-3">
-            {stripHtml(article.summary)}
-          </p>
-        )}
+        <p className="mb-4 text-sm leading-relaxed text-muted-foreground line-clamp-3">
+          {stripHtml(article.summary) || article.title.slice(0, 150)}
+        </p>
 
         <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-3">
           <div className="flex items-center gap-2 font-mono text-[10px] text-muted-foreground">

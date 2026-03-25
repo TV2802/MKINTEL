@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { ArticleCard } from "@/components/ArticleCard";
 import { ArticleDrawer } from "@/components/ArticleDrawer";
-import { TagFilterBar } from "@/components/TagFilterBar";
+import { TagFilterBar, STATE_ABBR_TO_TAG, STATE_NAMES } from "@/components/TagFilterBar";
 import { useAllArticles } from "@/hooks/useArticles";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Zap, ChevronLeft, ChevronRight } from "lucide-react";
@@ -12,6 +12,7 @@ const ARTICLES_PER_PAGE = 12;
 const Articles = () => {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [activeTags, setActiveTags] = useState<string[]>([]);
+  const [activeStates, setActiveStates] = useState<string[]>([]);
   const [page, setPage] = useState(1);
 
   const { data: articles, isLoading } = useAllArticles();
@@ -21,22 +22,31 @@ const Articles = () => {
     [articles]
   );
 
-  const availableTags = useMemo(() => {
-    const tagSet = new Set<string>();
-    for (const a of nonDigestArticles) {
-      const tags: string[] = (a as any).tags ?? [];
-      tags.forEach((t) => tagSet.add(t));
-    }
-    return [...tagSet];
-  }, [nonDigestArticles]);
+  const filteredArticles = useMemo(() => {
+    let result = nonDigestArticles;
 
-  const filteredArticles =
-    activeTags.length > 0
-      ? nonDigestArticles.filter((a) => {
-          const tags: string[] = (a as any).tags ?? [];
-          return activeTags.some((t) => tags.includes(t));
-        })
-      : nonDigestArticles;
+    // Filter by category tags
+    if (activeTags.length > 0) {
+      result = result.filter((a) => {
+        const tags: string[] = (a as any).tags ?? [];
+        return activeTags.some((t) => tags.includes(t));
+      });
+    }
+
+    // Filter by states
+    if (activeStates.length > 0) {
+      result = result.filter((a) => {
+        const tags: string[] = (a as any).tags ?? [];
+        const states: string[] = (a as any).states ?? [];
+        return activeStates.some((st) => {
+          const tagName = STATE_ABBR_TO_TAG[st] || STATE_NAMES[st];
+          return tags.includes(tagName) || states.includes(st);
+        });
+      });
+    }
+
+    return result;
+  }, [nonDigestArticles, activeTags, activeStates]);
 
   const totalPages = Math.max(1, Math.ceil(filteredArticles.length / ARTICLES_PER_PAGE));
   const currentPage = Math.min(page, totalPages);
@@ -49,6 +59,19 @@ const Articles = () => {
     setActiveTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     );
+    setPage(1);
+  };
+
+  const handleStateToggle = (state: string) => {
+    setActiveStates((prev) =>
+      prev.includes(state) ? prev.filter((s) => s !== state) : [...prev, state]
+    );
+    setPage(1);
+  };
+
+  const handleClear = () => {
+    setActiveTags([]);
+    setActiveStates([]);
     setPage(1);
   };
 
@@ -79,11 +102,9 @@ const Articles = () => {
       <TagFilterBar
         activeTags={activeTags}
         onTagToggle={handleTagToggle}
-        onClear={() => {
-          setActiveTags([]);
-          setPage(1);
-        }}
-        availableTags={availableTags}
+        onClear={handleClear}
+        activeStates={activeStates}
+        onStateToggle={handleStateToggle}
       />
 
       <main className="container mx-auto px-4 py-10">
@@ -98,8 +119,8 @@ const Articles = () => {
             <Zap className="mb-4 h-12 w-12 text-primary" />
             <h2 className="mb-2 font-display text-2xl font-bold">No Articles Found</h2>
             <p className="max-w-md text-muted-foreground">
-              {activeTags.length > 0
-                ? "No articles match the selected tags."
+              {activeTags.length > 0 || activeStates.length > 0
+                ? "No articles match the selected filters."
                 : "The first articles are being curated. Check back soon."}
             </p>
           </div>
