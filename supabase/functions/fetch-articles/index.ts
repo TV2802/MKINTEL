@@ -22,8 +22,8 @@ const CONFIG = {
   SOURCES: [
     { url: "https://www.pv-magazine-usa.com/feed/",          name: "PV Magazine USA" },
     { url: "https://www.solarpowerworldonline.com/feed/",    name: "Solar Power World" },
-    { url: "https://www.energy-storage.news/feed/",        name: "Energy Storage News" },
-    { url: "https://www.canarymedia.com/rss.xml",                     name: "Canary Media" },
+   { url: "https://www.pv-tech.org/feed/", name: "PV Tech" },
+    { url: "https://acore.org/feed/", name: "ACORE" },
     { url: "https://www.utilitydive.com/feeds/news/",        name: "Utility Dive" },
   ],
 
