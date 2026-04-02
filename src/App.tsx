@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 import Articles from "./pages/Articles";
 import MarketIntelligence from "./pages/MarketIntelligence";
 import CAHub from "./pages/market/CA";
+import NYHub from "./pages/market/NY";
 import NotFound from "./pages/NotFound";
 import type { Article } from "@/hooks/useArticles";
 
@@ -31,6 +32,7 @@ const AppContent = () => {
             <Route path="/articles" element={<Articles />} />
             <Route path="/market" element={<MarketIntelligence />} />
             <Route path="/market/CA" element={<CAHub />} />
+            <Route path="/market/NY" element={<NYHub />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </div>

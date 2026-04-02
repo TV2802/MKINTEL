@@ -175,14 +175,15 @@ export default function StatePreviewPanel({
     setTimeout(onClose, 300);
   };
 
+  const FULL_HUB_STATES = ["CA", "NY"];
+
   const handleEnter = () => {
-    // Only CA has a full hub page right now
-    if (abbr === "CA") {
-      navigate("/market/CA");
+    if (FULL_HUB_STATES.includes(abbr)) {
+      navigate(`/market/${abbr}`);
     }
   };
 
-  const hasFullHub = abbr === "CA"; // expand as more state pages are built
+  const hasFullHub = FULL_HUB_STATES.includes(abbr);
 
   return (
     <>
