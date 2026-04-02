@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s --max-time 10 \"https://heatmap.news\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 10 \"https://heatmap.news/feeds/feed.rss\")",
+      "Bash(curl -s --max-time 10 \"https://heatmap.news/feeds/feed.rss\")"
+    ]
+  }
+}

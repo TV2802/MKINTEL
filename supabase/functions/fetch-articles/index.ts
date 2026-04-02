@@ -25,6 +25,7 @@ const CONFIG = {
    { url: "https://www.pv-tech.org/feed/", name: "PV Tech" },
     { url: "https://acore.org/feed/", name: "ACORE" },
     { url: "https://www.utilitydive.com/feeds/news/",        name: "Utility Dive" },
+    { url: "https://heatmap.news/feeds/feed.rss",            name: "Heatmap News" },
   ],
 
   RELEVANCE_REQUIRED: [
