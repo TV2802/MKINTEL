@@ -61,11 +61,11 @@
     --background: 218 55% 10%;
     --foreground: 210 25% 92%;
 
-    --card: 215 45% 12%;
-    --card-foreground: 210 25% 95%;
+    --card: 215 45% 14%;
+    --card-foreground: 210 20% 93%;
 
-    --popover: 215 45% 12%;
-    --popover-foreground: 210 25% 95%;
+    --popover: 215 45% 14%;
+    --popover-foreground: 210 20% 93%;
 
     --primary: 43 96% 56%;
     --primary-foreground: 216 50% 8%;
