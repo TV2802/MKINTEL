@@ -2,7 +2,7 @@ import { Zap, ArrowUpRight } from "lucide-react";
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-foreground text-background">
+    <footer className="border-t border-border bg-card text-card-foreground">
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col gap-10 md:flex-row md:items-end md:justify-between">
           {/* Brand */}
